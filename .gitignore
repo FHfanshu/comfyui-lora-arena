@@ -158,8 +158,4 @@ cython_debug/
 # Project specific
 data/*.db
 data/*.sqlite
-backend/lorarena.db
-backend/venv/
 node_modules/
-frontend/dist/
-frontend/.next/
