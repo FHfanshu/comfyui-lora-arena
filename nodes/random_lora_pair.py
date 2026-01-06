@@ -49,18 +49,22 @@ class LoRArenaRandomLoraPair:
     def _scan_directory(self, gen: random.Random) -> Tuple[str, str]:
         """Scan directory for LoRA files and select two randomly."""
         lora_subdir = self._load_config_lora_directory()
+        print(f"[LoRArena] RandomLoraPair: lora_directory from config = '{lora_subdir}'")
 
         try:
             import folder_paths
             lora_base = folder_paths.get_folder_paths("loras")[0]
-        except Exception:
-            print("[LoRArena] Cannot get ComfyUI loras folder")
+            print(f"[LoRArena] RandomLoraPair: ComfyUI loras base = '{lora_base}'")
+        except Exception as e:
+            print(f"[LoRArena] Cannot get ComfyUI loras folder: {e}")
             return "", ""
 
         if os.path.isabs(lora_subdir):
             full_dir = lora_subdir
+            print(f"[LoRArena] RandomLoraPair: Using absolute path = '{full_dir}'")
         else:
             full_dir = os.path.join(lora_base, lora_subdir) if lora_subdir else lora_base
+            print(f"[LoRArena] RandomLoraPair: Using relative path, full_dir = '{full_dir}'")
 
         if not os.path.isdir(full_dir):
             print(f"[LoRArena] Invalid directory: {full_dir}")
@@ -74,6 +78,8 @@ class LoRArenaRandomLoraPair:
             if Path(f).suffix.lower() in lora_extensions:
                 lora_files.append(f)
 
+        print(f"[LoRArena] RandomLoraPair: Found {len(lora_files)} LoRA files in {full_dir}")
+
         if len(lora_files) < 2:
             print(f"[LoRArena] Need at least 2 LoRA files, found {len(lora_files)}")
             return "", ""
@@ -84,16 +90,20 @@ class LoRArenaRandomLoraPair:
 
         # Select first two from shuffled list
         selected = lora_files[:2]
+        print(f"[LoRArena] RandomLoraPair: Selected files = {selected}")
 
         # Return relative path for LoRA Loader (e.g., "748\\xxx.safetensors")
         relative_dir = lora_subdir
         if os.path.isabs(lora_subdir):
             try:
                 relative_dir = os.path.relpath(full_dir, lora_base)
+                print(f"[LoRArena] RandomLoraPair: Computed relative_dir = '{relative_dir}'")
                 if relative_dir.startswith(".."):
-                    print("[LoRArena] Directory must be under ComfyUI loras path")
+                    print(f"[LoRArena] Directory '{full_dir}' is NOT under ComfyUI loras path '{lora_base}'")
+                    print(f"[LoRArena] Please ensure your LoRA directory is under ComfyUI's models/loras folder")
                     return "", ""
-            except Exception:
+            except Exception as e:
+                print(f"[LoRArena] Failed to compute relative path: {e}")
                 relative_dir = ""
 
         if relative_dir:
@@ -103,6 +113,7 @@ class LoRArenaRandomLoraPair:
         else:
             lora_a, lora_b = selected[0], selected[1]
 
+        print(f"[LoRArena] RandomLoraPair: Final lora_a = '{lora_a}', lora_b = '{lora_b}'")
         return lora_a, lora_b
 
     def _load_config_lora_directory(self) -> str:
