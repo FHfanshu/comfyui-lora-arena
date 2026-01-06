@@ -1,36 +1,46 @@
-# LoRA Arena（ComfyUI 自定义节点）
+# LoRA Arena (ComfyUI 自定义节点)
 
-基于 ELO 评分机制的 LoRA Checkpoint 评估系统。通过双图对比投票，快速找出训练效果最好的 LoRA。
+基于 ELO 评分机制的 Stable Diffusion LoRA 评估系统。通过在相同的提示词和种子下同时生成两张图片，科学评估不同 LoRA 权重的表现。
 
-## 安装（ComfyUI）
+## 主要特点
 
-1. 将 `comfyui-lorarena` 目录复制或软链接到 ComfyUI 的 `custom_nodes/`：
-   - 示例路径：`F:\AI\ComfyUI\custom_nodes\comfyui-lorarena`
+- **ELO 评分系统**: 使用经典的 ELO 算法科学评估 LoRA 质量。
+- **公平对比**: 相同的提示词和种子，LoRA 是唯一的变量，确保对比的公平性。
+- **随机匹配**: 自动选择 LoRA 对，并具有稳定的随机分布算法。
+- **动态提示词**: 从本地目录、预设或自定义列表中随机抽取提示词。
+- **预生成 (Auto-Queue)**: 异步生成流程，投票后自动填充队列，大幅提升评测效率。
+- **画布插件**: 直接在 ComfyUI 内使用的交互式投票和排行榜插件。
+- **多语言支持**: 完整支持中英文界面。
+
+## 安装方法
+
+1. 将本仓库克隆或下载到 ComfyUI 的 `custom_nodes` 文件夹中：
+   ```bash
+   cd ComfyUI/custom_nodes
+   git clone https://github.com/FHfanshu/comfyui-lora-arena
+   ```
 2. 安装依赖：
    ```bash
-   pip install -r custom_nodes/comfyui-lorarena/requirements.txt
+   pip install -r comfyui-lora-arena/comfyui-lorarena/requirements.txt
    ```
 3. 重启 ComfyUI。
 
-## 快速开始
+## 快速上手
 
-1. 在 ComfyUI 中导入示例工作流：
-   - `comfyui-lorarena/examples/lorarena_sdxl_basic.json`
-2. 运行 `LoRArena Checkpoint Scanner` 扫描导入 LoRA。
-3. 运行 `LoRArena Matchmaker` → `LoRArena Battle Generator` → `LoRArena Vote Recorder` 进行对战与投票。
+1. **加载工作流**: 将 `comfyui-lorarena/examples/lorarena_battle_workflow.json` 导入 ComfyUI。
+2. **扫描 LoRA**: 使用 `LoRArena Checkpoint Scanner` 节点索引你的 LoRA 文件。
+3. **配置**: 点击右下角的 🏆 按钮，设置你的 LoRA 目录和提示词目录。
+4. **开始对战**: 点击 "Queue Prompt" 开始对战。使用 `Battle Display` 部件进行投票。
+5. **开启预生成**: 在设置中开启“预生成”，投票后会自动提交后续对战队列。
 
-## 节点列表
+## 核心节点
 
-- **LoRArena Matchmaker**：对战匹配（balanced / random / exploration）
-- **LoRArena Battle Generator**：双图生成（相同 prompt/seed，仅 LoRA 不同）
-- **LoRArena Vote Recorder**：投票记录 + ELO 更新
-- **LoRArena Leaderboard**：排行榜（JSON 输出）
-- **LoRArena Checkpoint Scanner**：扫描 LoRA 并导入数据库
-- **LoRArena ELO Display**：单个 LoRA 的 ELO 统计
+- **LoRArena Random LoRA Pair**: 随机选取两个 LoRA 进行对比。
+- **LoRArena Random Prompt**: 从不同来源选取随机提示词。
+- **LoRArena Battle Display**: 交互式部件，用于查看图片并进行投票。
+- **LoRArena Leaderboard Display**: 画布内挂件，显示实时 ELO 排名。
+- **LoRArena Checkpoint Scanner**: 扫描目录将 LoRA 添加到评估数据库。
 
-## Web 面板（内嵌前端）
+## 开源协议
 
-ComfyUI 顶部菜单会出现 “LoRArena 面板” 按钮，点击可打开内嵌前端页面。
-
-> 注意：当前只提供了基础数据接口，前端完整功能（如对战生成等）仍在迁移中。
-
+MIT
