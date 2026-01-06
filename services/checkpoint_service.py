@@ -65,6 +65,26 @@ class CheckpointService:
 
         if not normalized_dir:
             return True
+
+        # Handle absolute paths - extract just the relative part
+        # If directory contains drive letter or starts with /, try to extract meaningful suffix
+        if ":" in normalized_dir or normalized_dir.startswith("/"):
+            # Try common patterns like "models/Lora/..." or just take last 2-3 parts
+            parts = normalized_dir.split("/")
+            # Find "lora" folder and take everything after it
+            for i, part in enumerate(parts):
+                if part.lower() in ("lora", "loras"):
+                    normalized_dir = "/".join(parts[i+1:])
+                    break
+            else:
+                # No lora folder found, use last 2 parts as fallback
+                if len(parts) >= 2:
+                    normalized_dir = "/".join(parts[-2:])
+                elif len(parts) >= 1:
+                    normalized_dir = parts[-1]
+
+        if not normalized_dir:
+            return True
         if normalized_lora == normalized_dir:
             return True
         if normalized_lora.startswith(normalized_dir + "/"):
