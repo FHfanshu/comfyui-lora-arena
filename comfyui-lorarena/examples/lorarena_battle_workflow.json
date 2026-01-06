@@ -356,7 +356,6 @@
         "Node name for S&R": "LoRArenaRandomLoraPair"
       },
       "widgets_values": [
-        "F:\\AI\\ComfyUI\\models\\loras\\748",
         562087595027562,
         "randomize"
       ]
@@ -882,7 +881,6 @@
       },
       "widgets_values": [
         "directory",
-        "E:\\Download\\dataset\\set\\748CM\\748cm",
         0,
         "randomize",
         "",

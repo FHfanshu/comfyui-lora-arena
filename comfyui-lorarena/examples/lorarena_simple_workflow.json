@@ -15,7 +15,7 @@
         {"name": "lora_b", "type": "STRING", "links": [2], "slot_index": 1},
         {"name": "seed", "type": "INT", "links": [3, 4], "slot_index": 2}
       ],
-      "widgets_values": ["748", 0]
+      "widgets_values": [0]
     },
     {
       "id": 2,
@@ -30,7 +30,7 @@
         {"name": "negative", "type": "STRING", "links": [6], "slot_index": 1},
         {"name": "seed", "type": "INT", "links": null, "slot_index": 2}
       ],
-      "widgets_values": ["preset", "", 0, "", "lowres, bad anatomy, worst quality"]
+      "widgets_values": ["preset", 0, "", "lowres, bad anatomy, worst quality"]
     }
   ],
   "links": [
