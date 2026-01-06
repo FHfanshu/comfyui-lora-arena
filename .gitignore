@@ -1,0 +1,22 @@
+# Ignore everything by default
+/*
+
+# But allow these files
+!comfyui-lorarena/
+!README.md
+!README_CN.md
+!CLAUDE.md
+!.gitignore
+
+# Inside comfyui-lorarena, ignore specific files
+comfyui-lorarena/__pycache__/
+comfyui-lorarena/**/*.py[cod]
+comfyui-lorarena/data/*.db
+comfyui-lorarena/data/*.sqlite
+comfyui-lorarena/data/lorarena.db
+# We want to keep config.json as template but usually it's ignored if it has local paths.
+# However, for a new repo, including it is fine.
+
+# OS files
+.DS_Store
+Thumbs.db
