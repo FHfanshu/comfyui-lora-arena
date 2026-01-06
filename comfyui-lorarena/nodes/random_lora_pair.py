@@ -24,10 +24,6 @@ class LoRArenaRandomLoraPair:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "lora_directory": ("STRING", {
-                    "default": "auto",
-                    "placeholder": "Use 'auto' or relative path like: 748"
-                }),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
             },
         }
@@ -39,26 +35,20 @@ class LoRArenaRandomLoraPair:
 
     def select_pair(
         self,
-        lora_directory: str,
         seed: int,
     ) -> Tuple[str, str, int]:
         """Select a random pair of LoRAs from directory."""
-        # Use a local random instance to avoid interference
         if seed == 0:
             seed = random.randint(0, 0xffffffffffffffff)
 
         gen = random.Random(seed)
 
-        lora_a, lora_b = self._scan_directory(lora_directory, gen)
+        lora_a, lora_b = self._scan_directory(gen)
         return (lora_a, lora_b, seed)
 
-    def _scan_directory(self, lora_subdir: str, gen: random.Random) -> Tuple[str, str]:
+    def _scan_directory(self, gen: random.Random) -> Tuple[str, str]:
         """Scan directory for LoRA files and select two randomly."""
-        lora_subdir = (lora_subdir or "").strip()
-        if lora_subdir.lower() in {"auto", "config", ""}:
-            config_dir = self._load_config_lora_directory()
-            if config_dir:
-                lora_subdir = config_dir
+        lora_subdir = self._load_config_lora_directory()
 
         try:
             import folder_paths

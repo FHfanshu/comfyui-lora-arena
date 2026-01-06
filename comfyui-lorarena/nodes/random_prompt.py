@@ -38,10 +38,6 @@ class LoRArenaRandomPrompt:
         return {
             "required": {
                 "mode": (cls.MODES, {"default": "preset"}),
-                "prompt_directory": ("STRING", {
-                    "default": "auto",
-                    "placeholder": "Use 'auto' or path to prompts folder..."
-                }),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
             },
             "optional": {
@@ -64,13 +60,11 @@ class LoRArenaRandomPrompt:
     def select_prompt(
         self,
         mode: str,
-        prompt_directory: str,
         seed: int,
         custom_prompts: str = "",
         negative_prompt: str = DEFAULT_NEGATIVE,
     ) -> Tuple[str, str, int]:
         """Select a random prompt."""
-        # Use a local random instance to avoid interference
         if seed == 0:
             seed = random.randint(0, 0xffffffffffffffff)
 
@@ -79,8 +73,7 @@ class LoRArenaRandomPrompt:
         prompt = ""
 
         if mode == "directory":
-            if not prompt_directory or prompt_directory.lower() == "auto":
-                prompt_directory = self._load_config_training_directory()
+            prompt_directory = self._load_config_training_directory()
             prompt = self._from_directory(prompt_directory, gen)
         elif mode == "custom" and custom_prompts.strip():
             prompts = [p.strip() for p in custom_prompts.split("\n") if p.strip()]
