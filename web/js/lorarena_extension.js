@@ -28,6 +28,11 @@ const STRINGS = (() => {
     battleRoyaleWinRate: isZh ? "最低胜率" : "Min Win Rate",
     battleRoyaleThresholdHint: isZh ? "达到此场次后开始淘汰" : "Start elimination after this many battles",
     battleRoyaleWinRateHint: isZh ? "低于此胜率将被淘汰 (0-1)" : "Eliminate if win rate below this (0-1)",
+    scan: isZh ? "扫描导入" : "Scan LoRAs",
+    scanning: isZh ? "扫描中..." : "Scanning...",
+    scanSuccess: isZh ? "导入成功" : "Import success",
+    scanFailed: isZh ? "扫描失败" : "Scan failed",
+    scanHint: isZh ? "扫描并导入LoRA到数据库" : "Scan and import LoRAs to database",
   };
 })();
 
@@ -183,6 +188,22 @@ function ensureStyles() {
       opacity: 0.6;
       cursor: default;
     }
+    .lorarena-scan-btn {
+      border: none;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      margin-right: 8px;
+    }
+    .lorarena-scan-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
     .lorarena-launch-btn {
       position: fixed;
       bottom: 20px;
@@ -268,7 +289,10 @@ function createHoverPanel() {
     </div>
     <div class="lorarena-hover-footer">
       <span class="lorarena-hover-status" data-status>${STRINGS.loaded}</span>
-      <button class="lorarena-hover-save" type="button">${STRINGS.save}</button>
+      <div style="display:flex;gap:8px;">
+        <button class="lorarena-scan-btn" type="button" title="${STRINGS.scanHint}">${STRINGS.scan}</button>
+        <button class="lorarena-hover-save" type="button">${STRINGS.save}</button>
+      </div>
     </div>
   `;
 
@@ -377,11 +401,50 @@ function addLauncherButton() {
   const panel = createHoverPanel();
   const closeBtn = panel.querySelector(".lorarena-hover-close");
   const saveBtn = panel.querySelector(".lorarena-hover-save");
+  const scanBtn = panel.querySelector(".lorarena-scan-btn");
   if (closeBtn) {
     closeBtn.addEventListener("click", () => panel.classList.remove("open"));
   }
   if (saveBtn) {
     saveBtn.addEventListener("click", () => saveHoverConfig(panel));
+  }
+  if (scanBtn) {
+    scanBtn.addEventListener("click", async () => {
+      const status = panel.querySelector("[data-status]");
+      scanBtn.disabled = true;
+      scanBtn.textContent = STRINGS.scanning;
+      if (status) status.textContent = STRINGS.scanning;
+
+      try {
+        // First save config to ensure lora_directory is up to date
+        await saveHoverConfig(panel);
+
+        // Get the lora_directory from the input field
+        const loraDirInput = panel.querySelector('[data-field="lora_directory"]');
+        const loraDirectory = loraDirInput ? loraDirInput.value.trim() : "";
+
+        const response = await fetch("/lorarena/api/checkpoints/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ directory: loraDirectory || null }),
+        });
+        const result = await response.json();
+        if (response.ok) {
+          const msg = `${STRINGS.scanSuccess}: ${result.imported}/${result.scanned}`;
+          if (status) status.textContent = msg;
+          scanBtn.textContent = STRINGS.scan;
+        } else {
+          throw new Error(result.detail || "Scan failed");
+        }
+      } catch (error) {
+        console.error("[LoRArena] Scan failed:", error);
+        const status = panel.querySelector("[data-status]");
+        if (status) status.textContent = STRINGS.scanFailed;
+        scanBtn.textContent = STRINGS.scan;
+      } finally {
+        scanBtn.disabled = false;
+      }
+    });
   }
 
   const button = document.createElement("button");
