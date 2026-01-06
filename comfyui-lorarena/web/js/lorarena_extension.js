@@ -22,6 +22,12 @@ const STRINGS = (() => {
     basic: isZh ? "基础配置" : "Basics",
     autoQueue: isZh ? "预生成" : "Pre-generate",
     autoQueueCount: isZh ? "预生成数量" : "Queue Count",
+    battleRoyale: isZh ? "大逃杀模式" : "Battle Royale",
+    battleRoyaleEnabled: isZh ? "启用大逃杀" : "Enable Battle Royale",
+    battleRoyaleThreshold: isZh ? "最低场次" : "Min Battles",
+    battleRoyaleWinRate: isZh ? "最低胜率" : "Min Win Rate",
+    battleRoyaleThresholdHint: isZh ? "达到此场次后开始淘汰" : "Start elimination after this many battles",
+    battleRoyaleWinRateHint: isZh ? "低于此胜率将被淘汰 (0-1)" : "Eliminate if win rate below this (0-1)",
   };
 })();
 
@@ -242,6 +248,23 @@ function createHoverPanel() {
           <div class="lorarena-toggle" data-field="auto_queue_enabled" data-type="boolean"></div>
         </div>
       </div>
+      <div class="lorarena-section">
+        <div class="lorarena-section-title">${STRINGS.battleRoyale}</div>
+        <div class="lorarena-toggle-row">
+          <span class="lorarena-toggle-label">${STRINGS.battleRoyaleEnabled}</span>
+          <div class="lorarena-toggle" data-field="battle_royale_enabled" data-type="boolean"></div>
+        </div>
+        <div class="lorarena-field">
+          <label>${STRINGS.battleRoyaleThreshold}</label>
+          <input type="number" data-field="battle_royale_threshold" placeholder="10" min="1" />
+          <small style="color:#6b7280;font-size:10px;">${STRINGS.battleRoyaleThresholdHint}</small>
+        </div>
+        <div class="lorarena-field">
+          <label>${STRINGS.battleRoyaleWinRate}</label>
+          <input type="number" data-field="battle_royale_win_rate" placeholder="0.3" min="0" max="1" step="0.05" />
+          <small style="color:#6b7280;font-size:10px;">${STRINGS.battleRoyaleWinRateHint}</small>
+        </div>
+      </div>
     </div>
     <div class="lorarena-hover-footer">
       <span class="lorarena-hover-status" data-status>${STRINGS.loaded}</span>
@@ -315,13 +338,13 @@ async function saveHoverConfig(panel) {
     let value = field.value;
     if (value === "") return;
 
-    if (["steps", "width", "height"].includes(key)) {
+    if (["steps", "width", "height", "battle_royale_threshold"].includes(key)) {
       const parsed = parseInt(value, 10);
       if (!Number.isNaN(parsed)) payload[key] = parsed;
       return;
     }
 
-    if (["cfg_scale", "lora_strength"].includes(key)) {
+    if (["cfg_scale", "lora_strength", "battle_royale_win_rate"].includes(key)) {
       const parsed = parseFloat(value);
       if (!Number.isNaN(parsed)) payload[key] = parsed;
       return;

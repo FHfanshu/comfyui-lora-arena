@@ -5,13 +5,32 @@ Handles checkpoint selection for battles.
 
 from __future__ import annotations
 
+import json
 import random
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .models import Checkpoint
+
+
+def _load_config() -> dict:
+    """Load config from data/config.json."""
+    config_path = Path(__file__).resolve().parent.parent / "data" / "config.json"
+    default = {
+        "battle_royale_enabled": False,
+        "battle_royale_threshold": 10,
+        "battle_royale_win_rate": 0.3,
+    }
+    if config_path.exists():
+        try:
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+            default.update(data)
+        except Exception:
+            pass
+    return default
 
 
 class MatchmakingService:
@@ -42,12 +61,28 @@ class MatchmakingService:
         db: Session,
         exclude_ids: Optional[List[int]] = None,
     ) -> List[Checkpoint]:
-        """Get all active checkpoints, optionally excluding some."""
+        """Get all active checkpoints, optionally excluding some.
+
+        Also applies Battle Royale filtering if enabled:
+        - Checkpoints with total_battles >= threshold AND win_rate < min_win_rate are excluded.
+        """
         query = select(Checkpoint).where(Checkpoint.is_active == True)
         if exclude_ids:
             query = query.where(Checkpoint.id.notin_(exclude_ids))
         result = db.execute(query)
-        return list(result.scalars().all())
+        checkpoints = list(result.scalars().all())
+
+        # Apply Battle Royale filtering
+        config = _load_config()
+        if config.get("battle_royale_enabled", False):
+            threshold = config.get("battle_royale_threshold", 10)
+            min_win_rate = config.get("battle_royale_win_rate", 0.3)
+            checkpoints = [
+                c for c in checkpoints
+                if c.total_battles < threshold or c.win_rate >= min_win_rate
+            ]
+
+        return checkpoints
 
     def _random_matchup(
         self,
