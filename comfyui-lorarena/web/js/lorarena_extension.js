@@ -1,0 +1,517 @@
+import { app } from "/scripts/app.js";
+import { api } from "/scripts/api.js";
+import { createVotingWidget } from "./voting_widget.js";
+import { createLeaderboardWidget } from "./leaderboard_widget.js";
+
+const STRINGS = (() => {
+  const lang = navigator.language || "en";
+  const isZh = lang.toLowerCase().startsWith("zh");
+  return {
+    button: isZh ? "🏆 LoRArena" : "🏆 LoRArena",
+    title: isZh ? "LoRArena 配置" : "LoRArena Settings",
+    close: isZh ? "关闭" : "Close",
+    save: isZh ? "保存" : "Save",
+    saving: isZh ? "保存中..." : "Saving...",
+    loaded: isZh ? "已加载" : "Loaded",
+    loadFailed: isZh ? "加载失败" : "Load failed",
+    saved: isZh ? "已保存" : "Saved",
+    saveFailed: isZh ? "保存失败" : "Save failed",
+    comfyuiUrl: isZh ? "ComfyUI 地址" : "ComfyUI URL",
+    loraDir: isZh ? "LoRA 目录" : "LoRA Directory",
+    trainingDir: isZh ? "训练集/提示词目录" : "Training/Prompt Dir",
+    basic: isZh ? "基础配置" : "Basics",
+    autoQueue: isZh ? "预生成" : "Pre-generate",
+    autoQueueCount: isZh ? "预生成数量" : "Queue Count",
+  };
+})();
+
+function ensureStyles() {
+  if (document.getElementById("lorarena-panel-style")) return;
+  const style = document.createElement("style");
+  style.id = "lorarena-panel-style";
+  style.textContent = `
+    .lorarena-hover-panel {
+      position: fixed;
+      right: 20px;
+      bottom: 72px;
+      width: 360px;
+      max-height: 70vh;
+      z-index: 10001;
+      display: none;
+      flex-direction: column;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(15, 17, 21, 0.98);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+      overflow: hidden;
+    }
+    .lorarena-hover-panel.open {
+      display: flex;
+    }
+    .lorarena-hover-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: rgba(24, 27, 32, 0.9);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 13px;
+      color: #e5e7eb;
+      font-weight: 600;
+    }
+    .lorarena-hover-close {
+      border: none;
+      background: transparent;
+      color: #9ca3af;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .lorarena-hover-close:hover {
+      background: rgba(255,255,255,0.08);
+      color: #f3f4f6;
+    }
+    .lorarena-hover-body {
+      padding: 10px 12px;
+      display: grid;
+      gap: 10px;
+      overflow-y: auto;
+    }
+    .lorarena-field label {
+      display: block;
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    .lorarena-field input {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid #1f2937;
+      background: #111827;
+      color: #e5e7eb;
+      font-size: 12px;
+      outline: none;
+    }
+    .lorarena-field input:focus {
+      border-color: #6b7280;
+      box-shadow: 0 0 0 2px rgba(99,102,241,0.2);
+    }
+    .lorarena-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .lorarena-toggle-label {
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+    .lorarena-toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      background: #374151;
+      border-radius: 11px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .lorarena-toggle.active {
+      background: #10b981;
+    }
+    .lorarena-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .lorarena-toggle.active::after {
+      transform: translateX(18px);
+    }
+    .lorarena-section {
+      display: grid;
+      gap: 10px;
+    }
+    .lorarena-section-title {
+      font-size: 10px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .lorarena-hover-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px 12px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    .lorarena-hover-footer a {
+      color: #93c5fd;
+      text-decoration: none;
+    }
+    .lorarena-hover-footer a:hover {
+      text-decoration: underline;
+    }
+    .lorarena-hover-save {
+      border: none;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .lorarena-hover-save:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .lorarena-launch-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 10000;
+      width: 52px;
+      height: 52px;
+      padding: 0;
+      border-radius: 9999px;
+      border: 2px solid #6366f1;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+      transition: all 0.2s ease;
+      user-select: none;
+      touch-action: none;
+      cursor: grab;
+    }
+    .lorarena-launch-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+    .lorarena-launch-btn.dragging {
+      cursor: grabbing;
+      transform: none;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function createHoverPanel() {
+  ensureStyles();
+  let panel = document.getElementById("lorarena-hover-panel");
+  if (panel) return panel;
+
+  panel = document.createElement("div");
+  panel.id = "lorarena-hover-panel";
+  panel.className = "lorarena-hover-panel";
+  panel.innerHTML = `
+    <div class="lorarena-hover-header">
+      <span>${STRINGS.title}</span>
+      <button class="lorarena-hover-close" type="button" title="${STRINGS.close}">✕</button>
+    </div>
+    <div class="lorarena-hover-body">
+      <div class="lorarena-section">
+        <div class="lorarena-section-title">${STRINGS.basic}</div>
+        <div class="lorarena-field">
+          <label>${STRINGS.loraDir}</label>
+          <input type="text" data-field="lora_directory" placeholder="styles/748cm" />
+        </div>
+        <div class="lorarena-field">
+          <label>${STRINGS.trainingDir}</label>
+          <input type="text" data-field="training_data_directory" placeholder="E:\\Dataset\\748cm" />
+        </div>
+        <div class="lorarena-toggle-row">
+          <span class="lorarena-toggle-label">${STRINGS.autoQueue}</span>
+          <div class="lorarena-toggle" data-field="auto_queue_enabled" data-type="boolean"></div>
+        </div>
+      </div>
+    </div>
+    <div class="lorarena-hover-footer">
+      <span class="lorarena-hover-status" data-status>${STRINGS.loaded}</span>
+      <button class="lorarena-hover-save" type="button">${STRINGS.save}</button>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+  return panel;
+}
+
+async function loadHoverConfig(panel) {
+  const status = panel.querySelector("[data-status]");
+  if (status) status.textContent = STRINGS.loaded;
+
+  try {
+    const configRes = await fetch("/lorarena/api/config");
+
+    if (!configRes.ok) throw new Error("config");
+    const config = await configRes.json();
+
+    const fields = panel.querySelectorAll("[data-field]");
+    fields.forEach((field) => {
+      const key = field.getAttribute("data-field");
+      const type = field.getAttribute("data-type");
+      if (!key) return;
+      if (config[key] !== undefined && config[key] !== null) {
+        if (type === "boolean") {
+          // Toggle switch
+          if (config[key]) {
+            field.classList.add("active");
+          } else {
+            field.classList.remove("active");
+          }
+        } else {
+          field.value = config[key];
+        }
+      }
+    });
+
+    // Add click handlers for toggles
+    panel.querySelectorAll(".lorarena-toggle").forEach((toggle) => {
+      toggle.onclick = () => toggle.classList.toggle("active");
+    });
+
+  } catch (error) {
+    if (status) status.textContent = STRINGS.loadFailed;
+    console.error("[LoRArena] Failed to load hover config:", error);
+  }
+}
+
+async function saveHoverConfig(panel) {
+  const status = panel.querySelector("[data-status]");
+  const saveBtn = panel.querySelector(".lorarena-hover-save");
+  if (saveBtn) saveBtn.disabled = true;
+  if (status) status.textContent = STRINGS.saving;
+
+  const payload = {};
+  const fields = panel.querySelectorAll("[data-field]");
+  fields.forEach((field) => {
+    const key = field.getAttribute("data-field");
+    const type = field.getAttribute("data-type");
+    if (!key) return;
+
+    // Handle boolean toggles
+    if (type === "boolean") {
+      payload[key] = field.classList.contains("active");
+      return;
+    }
+
+    let value = field.value;
+    if (value === "") return;
+
+    if (["steps", "width", "height"].includes(key)) {
+      const parsed = parseInt(value, 10);
+      if (!Number.isNaN(parsed)) payload[key] = parsed;
+      return;
+    }
+
+    if (["cfg_scale", "lora_strength"].includes(key)) {
+      const parsed = parseFloat(value);
+      if (!Number.isNaN(parsed)) payload[key] = parsed;
+      return;
+    }
+
+    payload[key] = value;
+  });
+
+  try {
+    const response = await fetch("/lorarena/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error("save");
+    if (status) status.textContent = STRINGS.saved;
+  } catch (error) {
+    if (status) status.textContent = STRINGS.saveFailed;
+    console.error("[LoRArena] Failed to save hover config:", error);
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+function addLauncherButton() {
+  if (document.getElementById("lorarena-launch-button")) return;
+
+  ensureStyles();
+
+  const panel = createHoverPanel();
+  const closeBtn = panel.querySelector(".lorarena-hover-close");
+  const saveBtn = panel.querySelector(".lorarena-hover-save");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => panel.classList.remove("open"));
+  }
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => saveHoverConfig(panel));
+  }
+
+  const button = document.createElement("button");
+  button.id = "lorarena-launch-button";
+  button.className = "lorarena-launch-btn";
+  button.textContent = "🏆";
+  button.title = "LoRArena";
+
+  let hoverTimer;
+  let isDragging = false;
+  let dragMoved = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+
+  const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+  const loadButtonPosition = () => {
+    try {
+      const raw = localStorage.getItem("lorarena-launch-pos");
+      if (!raw) return;
+      const pos = JSON.parse(raw);
+      if (typeof pos.left === "number" && typeof pos.top === "number") {
+        button.style.left = `${pos.left}px`;
+        button.style.top = `${pos.top}px`;
+        button.style.right = "auto";
+        button.style.bottom = "auto";
+      }
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const saveButtonPosition = () => {
+    const rect = button.getBoundingClientRect();
+    try {
+      localStorage.setItem(
+        "lorarena-launch-pos",
+        JSON.stringify({ left: rect.left, top: rect.top })
+      );
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const positionPanel = () => {
+    if (!panel.classList.contains("open")) return;
+    const btnRect = button.getBoundingClientRect();
+    panel.style.right = "auto";
+    panel.style.bottom = "auto";
+    panel.style.left = "0px";
+    panel.style.top = "0px";
+    const panelRect = panel.getBoundingClientRect();
+    let left = btnRect.left + btnRect.width / 2 - panelRect.width / 2;
+    let top = btnRect.top - panelRect.height - 12;
+    if (top < 10) {
+      top = btnRect.bottom + 12;
+    }
+    left = clamp(left, 10, window.innerWidth - panelRect.width - 10);
+    top = clamp(top, 10, window.innerHeight - panelRect.height - 10);
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+  };
+
+  const openPanel = () => {
+    panel.classList.add("open");
+    loadHoverConfig(panel);
+    requestAnimationFrame(() => positionPanel());
+  };
+  const closePanel = () => panel.classList.remove("open");
+  const scheduleClose = () => {
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => {
+      if (!button.matches(":hover") && !panel.matches(":hover")) {
+        closePanel();
+      }
+    }, 160);
+  };
+
+  button.addEventListener("mouseenter", () => {
+    if (isDragging) return;
+    clearTimeout(hoverTimer);
+    openPanel();
+  });
+  button.addEventListener("mouseleave", scheduleClose);
+  panel.addEventListener("mouseenter", () => clearTimeout(hoverTimer));
+  panel.addEventListener("mouseleave", scheduleClose);
+  button.addEventListener("click", () => {
+    if (dragMoved) {
+      dragMoved = false;
+      return;
+    }
+    if (panel.classList.contains("open")) {
+      closePanel();
+    } else {
+      openPanel();
+    }
+  });
+
+  button.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    isDragging = true;
+    dragMoved = false;
+    button.classList.add("dragging");
+    const rect = button.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+    button.setPointerCapture(e.pointerId);
+  });
+
+  button.addEventListener("pointermove", (e) => {
+    if (!isDragging) return;
+    const rect = button.getBoundingClientRect();
+    let left = e.clientX - dragOffsetX;
+    let top = e.clientY - dragOffsetY;
+    left = clamp(left, 0, window.innerWidth - rect.width);
+    top = clamp(top, 0, window.innerHeight - rect.height);
+    button.style.left = `${left}px`;
+    button.style.top = `${top}px`;
+    button.style.right = "auto";
+    button.style.bottom = "auto";
+    dragMoved = true;
+    positionPanel();
+  });
+
+  button.addEventListener("pointerup", (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    button.classList.remove("dragging");
+    button.releasePointerCapture(e.pointerId);
+    saveButtonPosition();
+    setTimeout(() => {
+      dragMoved = false;
+    }, 0);
+  });
+
+  loadButtonPosition();
+
+  // Always add as fixed button in bottom-right corner
+  document.body.appendChild(button);
+  console.log("[LoRArena] Launch button added to page");
+}
+
+app.registerExtension({
+  name: "lorarena",
+  async setup() {
+    console.log("[LoRArena] Extension setup starting...");
+    try {
+      createVotingWidget(app, api);
+      createLeaderboardWidget(app, api);
+      addLauncherButton();
+      console.log("[LoRArena] Extension loaded successfully!");
+    } catch (error) {
+      console.error("[LoRArena] Extension setup failed:", error);
+    }
+  },
+});

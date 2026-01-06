@@ -1,0 +1,464 @@
+{
+  "id": "7179d272-6e5d-402b-b268-19ef93beda5b",
+  "revision": 0,
+  "last_node_id": 9,
+  "last_link_id": 9,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        320,
+        100
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "sd_xl_base_1.0.safetensors"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "LoRArenaCheckpointScanner",
+      "pos": [
+        40,
+        200
+      ],
+      "size": [
+        320,
+        110
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "imported_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "total_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "scan_report",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "auto",
+        ""
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoRArenaMatchmaker",
+      "pos": [
+        420,
+        40
+      ],
+      "size": [
+        320,
+        120
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "lora_a",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "lora_b",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "battle_id",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "battle_info",
+          "type": "LORARENA_BATTLE",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "balanced",
+        0
+      ]
+    },
+    {
+      "id": 4,
+      "type": "LoRArenaBattleGenerator",
+      "pos": [
+        420,
+        220
+      ],
+      "size": [
+        360,
+        360
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 2
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 3
+        },
+        {
+          "name": "battle_info",
+          "type": "LORARENA_BATTLE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image_a",
+          "type": "IMAGE",
+          "links": [
+            5,
+            8
+          ]
+        },
+        {
+          "name": "image_b",
+          "type": "IMAGE",
+          "links": [
+            6,
+            9
+          ]
+        },
+        {
+          "name": "battle_info",
+          "type": "LORARENA_BATTLE",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "",
+        "",
+        1024,
+        1024,
+        20,
+        7,
+        "euler_ancestral",
+        "normal",
+        0.8
+      ]
+    },
+    {
+      "id": 5,
+      "type": "PreviewImage",
+      "pos": [
+        840,
+        220
+      ],
+      "size": [
+        320,
+        260
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {}
+    },
+    {
+      "id": 6,
+      "type": "PreviewImage",
+      "pos": [
+        840,
+        520
+      ],
+      "size": [
+        320,
+        260
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {}
+    },
+    {
+      "id": 7,
+      "type": "LoRArenaVoteRecorder",
+      "pos": [
+        420,
+        620
+      ],
+      "size": [
+        360,
+        150
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "battle_info",
+          "type": "LORARENA_BATTLE",
+          "link": 7
+        },
+        {
+          "name": "image_a",
+          "type": "IMAGE",
+          "link": 8
+        },
+        {
+          "name": "image_b",
+          "type": "IMAGE",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "winner_name",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "elo_summary",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "skip"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "LoRArenaLeaderboard",
+      "pos": [
+        40,
+        360
+      ],
+      "size": [
+        320,
+        120
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "leaderboard_json",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        0,
+        50,
+        true
+      ]
+    },
+    {
+      "id": 9,
+      "type": "LoRArenaELODisplay",
+      "pos": [
+        40,
+        520
+      ],
+      "size": [
+        320,
+        120
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "elo_rating",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "total_battles",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "win_rate",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "stats_json",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        ""
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      4,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      1,
+      1,
+      4,
+      1,
+      "CLIP"
+    ],
+    [
+      3,
+      1,
+      2,
+      4,
+      2,
+      "VAE"
+    ],
+    [
+      4,
+      3,
+      3,
+      4,
+      3,
+      "LORARENA_BATTLE"
+    ],
+    [
+      5,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      4,
+      1,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      4,
+      2,
+      7,
+      0,
+      "LORARENA_BATTLE"
+    ],
+    [
+      8,
+      4,
+      0,
+      7,
+      1,
+      "IMAGE"
+    ],
+    [
+      9,
+      4,
+      1,
+      7,
+      2,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "frontendVersion": "1.20.7",
+    "ue_links": [],
+    "links_added_by_ue": [],
+    "ds": {
+      "scale": 1,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  },
+  "version": 0.4
+}
