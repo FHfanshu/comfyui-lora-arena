@@ -4,18 +4,20 @@
 import { app } from "/scripts/app.js";
 
 // Localization
-const LANG = (() => {
-    const lang = navigator.language || "en";
-    const isZh = lang.toLowerCase().startsWith("zh");
-    return {
-        title: isZh ? "LoRA 排行榜" : "LoRA Leaderboard",
-        refresh: isZh ? "刷新" : "Refresh",
-        loading: isZh ? "加载中..." : "Loading...",
-        noData: isZh ? "暂无排行。快去对战吧！" : "No LoRAs ranked yet. Start voting!",
-        battles: isZh ? "场次" : "Battles",
-        winRate: isZh ? "胜率" : "Win%",
-    };
-})();
+const isZh = (navigator.language || "en").toLowerCase().startsWith("zh");
+const LANG = {
+    title: isZh ? "LoRA 排行榜" : "LoRA Leaderboard",
+    refresh: isZh ? "刷新" : "Refresh",
+    loading: isZh ? "加载中..." : "Loading...",
+    noData: isZh ? "暂无排行。快去对战吧！" : "No LoRAs ranked yet. Start voting!",
+    battles: isZh ? "场次" : "Battles",
+    winRate: isZh ? "胜率" : "Win%",
+    updated: isZh ? "已更新" : "Updated",
+    dir: isZh ? "目录" : "Dir",
+    name: isZh ? "名称" : "Name",
+    loadFailed: isZh ? "加载排行榜失败" : "Failed to load leaderboard",
+    loadFailedShort: isZh ? "加载失败" : "Failed to load",
+};
 
 app.registerExtension({
     name: "lorarena.leaderboard_display",
@@ -181,9 +183,9 @@ app.registerExtension({
                 this._renderLeaderboard(data.items || []);
                 if (this._statusLabel) {
                     if (force) {
-                        this._statusLabel.textContent = isZh ? "已更新" : "Updated";
+                        this._statusLabel.textContent = LANG.updated;
                     } else if (loraDirectory) {
-                        this._statusLabel.textContent = `${isZh ? "目录" : "Dir"}: ${loraDirectory}`;
+                        this._statusLabel.textContent = `${LANG.dir}: ${loraDirectory}`;
                     } else {
                         this._statusLabel.textContent = "";
                     }
@@ -192,11 +194,11 @@ app.registerExtension({
                 console.error("[LoRArena] Failed to fetch leaderboard:", error);
                 this._tableContainer.innerHTML = `
                     <div style="color: #ef4444; text-align: center; padding: 20px;">
-                        ${isZh ? "加载排行榜失败" : "Failed to load leaderboard"}
+                        ${LANG.loadFailed}
                     </div>
                 `;
                 if (this._statusLabel) {
-                    this._statusLabel.textContent = isZh ? "加载失败" : "Failed to load";
+                    this._statusLabel.textContent = LANG.loadFailedShort;
                 }
             } finally {
                 if (this._refreshBtn) {
@@ -229,7 +231,7 @@ app.registerExtension({
                     <thead>
                         <tr style="color: #888; border-bottom: 1px solid #333;">
                             <th style="padding: 8px; text-align: left;">#</th>
-                            <th style="padding: 8px; text-align: left;">${isZh ? "名称" : "Name"}</th>
+                            <th style="padding: 8px; text-align: left;">${LANG.name}</th>
                             <th style="padding: 8px; text-align: right;">ELO</th>
                             <th style="padding: 8px; text-align: right;">${LANG.battles}</th>
                             <th style="padding: 8px; text-align: right;">${LANG.winRate}</th>
