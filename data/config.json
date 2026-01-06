@@ -15,7 +15,7 @@
   "worker_target_cache": 5,
   "worker_use_training_tags": false,
   "parallel_generation": true,
-  "battle_royale_enabled": false,
+  "battle_royale_enabled": true,
   "battle_royale_threshold": 10,
   "battle_royale_win_rate": 0.5,
   "remote_comfyui": true,
