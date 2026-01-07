@@ -507,21 +507,25 @@ app.registerExtension({
         nodeType.prototype._autoQueuePrompts = async function(target, max) {
             try {
                 // Use ComfyUI's API to check current queue depth
-                const app = window.app;
-                if (!app || !app.queuePrompt) {
+                const comfyApp = window.app;
+                if (!comfyApp || !comfyApp.queuePrompt) {
                     console.warn("[LoRArena] ComfyUI app.queuePrompt not available");
                     return;
                 }
 
-                // Get current queue status
+                // Get current queue status via direct API call
                 let currentQueueSize = 0;
                 try {
-                    const queueData = await app.api.getQueue();
+                    const response = await fetch("/queue");
+                    const queueData = await response.json();
                     const running = queueData.queue_running?.length || 0;
                     const pending = queueData.queue_pending?.length || 0;
                     currentQueueSize = running + pending;
+                    console.log(`[LoRArena] Queue status: running=${running}, pending=${pending}, total=${currentQueueSize}`);
                 } catch (err) {
                     console.warn("[LoRArena] Could not get queue status:", err);
+                    // If we can't get queue status, don't queue more to be safe
+                    return;
                 }
 
                 // Calculate how many to queue
@@ -538,7 +542,7 @@ app.registerExtension({
 
                 console.log(`[LoRArena] Smart queue: current=${currentQueueSize}, adding ${needed} (target=${target}, max=${max})`);
                 for (let i = 0; i < needed; i++) {
-                    await app.queuePrompt(0, 1);  // queue at front, batch size 1
+                    await comfyApp.queuePrompt(0, 1);  // queue at front, batch size 1
                 }
                 console.log(`[LoRArena] Queued ${needed} prompts successfully`);
             } catch (error) {
