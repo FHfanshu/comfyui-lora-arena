@@ -94,34 +94,31 @@ app.registerExtension({
             content.style.cssText = `
                 padding: 16px;
                 height: 100%;
-                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
                 pointer-events: auto;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             `;
 
-            // Title with refresh button
+            // Title with refresh button only
             const header = document.createElement("div");
             header.style.cssText = `
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 16px;
+                margin-bottom: 12px;
+                flex-shrink: 0;
             `;
 
             const title = document.createElement("div");
             title.style.cssText = `
                 color: #fff;
                 font-size: 16px;
-                font-weight: bold;
+                font-weight: 600;
             `;
             title.textContent = LANG.title;
             header.appendChild(title);
-
-            // Button container for refresh and reset
-            const btnContainer = document.createElement("div");
-            btnContainer.style.cssText = `
-                display: flex;
-                gap: 8px;
-            `;
 
             const refreshBtn = document.createElement("button");
             refreshBtn.style.cssText = `
@@ -131,33 +128,18 @@ app.registerExtension({
                 background: #3b82f6;
                 color: white;
                 font-size: 12px;
+                font-weight: 500;
                 cursor: pointer;
                 pointer-events: auto;
+                transition: background 0.2s;
             `;
             refreshBtn.textContent = LANG.refresh;
             refreshBtn.onpointerdown = (e) => e.stopPropagation();
             refreshBtn.onmousedown = (e) => e.stopPropagation();
             refreshBtn.onclick = () => this._fetchLeaderboard(true);
-            btnContainer.appendChild(refreshBtn);
-
-            const resetBtn = document.createElement("button");
-            resetBtn.style.cssText = `
-                padding: 6px 12px;
-                border: none;
-                border-radius: 4px;
-                background: #ef4444;
-                color: white;
-                font-size: 12px;
-                cursor: pointer;
-                pointer-events: auto;
-            `;
-            resetBtn.textContent = LANG.reset;
-            resetBtn.onpointerdown = (e) => e.stopPropagation();
-            resetBtn.onmousedown = (e) => e.stopPropagation();
-            resetBtn.onclick = () => this._resetAllStats();
-            btnContainer.appendChild(resetBtn);
-
-            header.appendChild(btnContainer);
+            refreshBtn.onmouseenter = () => refreshBtn.style.background = "#2563eb";
+            refreshBtn.onmouseleave = () => refreshBtn.style.background = "#3b82f6";
+            header.appendChild(refreshBtn);
 
             content.appendChild(header);
 
@@ -166,14 +148,54 @@ app.registerExtension({
                 color: #9ca3af;
                 font-size: 11px;
                 margin-bottom: 12px;
+                flex-shrink: 0;
             `;
             status.textContent = "Ready";
             content.appendChild(status);
 
-            // Table container
+            // Table container - scrollable
             const tableContainer = document.createElement("div");
             tableContainer.className = "leaderboard-table";
+            tableContainer.style.cssText = `
+                flex: 1;
+                overflow-y: auto;
+                min-height: 0;
+            `;
             content.appendChild(tableContainer);
+
+            // Footer with reset button
+            const footer = document.createElement("div");
+            footer.style.cssText = `
+                display: flex;
+                justify-content: flex-end;
+                padding-top: 12px;
+                margin-top: 8px;
+                border-top: 1px solid #333;
+                flex-shrink: 0;
+            `;
+
+            const resetBtn = document.createElement("button");
+            resetBtn.style.cssText = `
+                padding: 6px 12px;
+                border: none;
+                border-radius: 4px;
+                background: #dc2626;
+                color: white;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: pointer;
+                pointer-events: auto;
+                transition: background 0.2s;
+            `;
+            resetBtn.textContent = LANG.reset;
+            resetBtn.onpointerdown = (e) => e.stopPropagation();
+            resetBtn.onmousedown = (e) => e.stopPropagation();
+            resetBtn.onclick = () => this._resetAllStats();
+            resetBtn.onmouseenter = () => resetBtn.style.background = "#b91c1c";
+            resetBtn.onmouseleave = () => resetBtn.style.background = "#dc2626";
+            footer.appendChild(resetBtn);
+
+            content.appendChild(footer);
 
             this._tableContainer = tableContainer;
             this._statusLabel = status;
@@ -302,14 +324,14 @@ app.registerExtension({
             }
 
             let html = `
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
                     <thead>
-                        <tr style="color: #888; border-bottom: 1px solid #333;">
-                            <th style="padding: 8px; text-align: left;">#</th>
-                            <th style="padding: 8px; text-align: left;">${LANG.name}</th>
-                            <th style="padding: 8px; text-align: right;">ELO</th>
-                            <th style="padding: 8px; text-align: right;">${LANG.battles}</th>
-                            <th style="padding: 8px; text-align: right;">${LANG.winRate}</th>
+                        <tr style="color: #9ca3af; border-bottom: 1px solid #374151;">
+                            <th style="padding: 8px 6px; text-align: left; font-weight: 500;">#</th>
+                            <th style="padding: 8px 6px; text-align: left; font-weight: 500;">${LANG.name}</th>
+                            <th style="padding: 8px 6px; text-align: right; font-weight: 500;">ELO</th>
+                            <th style="padding: 8px 6px; text-align: right; font-weight: 500;">${LANG.battles}</th>
+                            <th style="padding: 8px 6px; text-align: right; font-weight: 500;">${LANG.winRate}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -327,12 +349,12 @@ app.registerExtension({
                     ? ` (${isZh ? "已淘汰" : "Eliminated"})`
                     : "";
                 html += `
-                    <tr style="color: #ddd; border-bottom: 1px solid #222; ${eliminatedStyle}">
-                        <td style="padding: 8px; color: ${rankColor}; font-weight: bold;">${item.rank}</td>
-                        <td style="padding: 8px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;" title="${item.name}${eliminatedTitle}">${displayName}</td>
-                        <td style="padding: 8px; text-align: right; color: #3b82f6;">${eloRounded}</td>
-                        <td style="padding: 8px; text-align: right;">${item.total_battles}</td>
-                        <td style="padding: 8px; text-align: right; color: ${item.win_rate >= 0.5 ? '#22c55e' : '#ef4444'};">${(item.win_rate * 100).toFixed(1)}%</td>
+                    <tr style="color: #e5e7eb; border-bottom: 1px solid #1f2937; ${eliminatedStyle}">
+                        <td style="padding: 8px 6px; color: ${rankColor}; font-weight: 600;">${item.rank}</td>
+                        <td style="padding: 8px 6px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;" title="${item.name}${eliminatedTitle}">${displayName}</td>
+                        <td style="padding: 8px 6px; text-align: right; color: #60a5fa; font-weight: 500;">${eloRounded}</td>
+                        <td style="padding: 8px 6px; text-align: right; color: #9ca3af;">${item.total_battles}</td>
+                        <td style="padding: 8px 6px; text-align: right; color: ${item.win_rate >= 0.5 ? '#4ade80' : '#f87171'}; font-weight: 500;">${(item.win_rate * 100).toFixed(1)}%</td>
                     </tr>
                 `;
             });
