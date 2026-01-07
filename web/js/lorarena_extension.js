@@ -514,7 +514,6 @@ function addLauncherButton() {
   button.textContent = "🏆";
   button.title = "LoRArena";
 
-  let hoverTimer;
   let isDragging = false;
   let dragMoved = false;
   let dragOffsetX = 0;
@@ -575,23 +574,8 @@ function addLauncherButton() {
     requestAnimationFrame(() => positionPanel());
   };
   const closePanel = () => panel.classList.remove("open");
-  const scheduleClose = () => {
-    clearTimeout(hoverTimer);
-    hoverTimer = setTimeout(() => {
-      if (!button.matches(":hover") && !panel.matches(":hover")) {
-        closePanel();
-      }
-    }, 160);
-  };
 
-  button.addEventListener("mouseenter", () => {
-    if (isDragging) return;
-    clearTimeout(hoverTimer);
-    openPanel();
-  });
-  button.addEventListener("mouseleave", scheduleClose);
-  panel.addEventListener("mouseenter", () => clearTimeout(hoverTimer));
-  panel.addEventListener("mouseleave", scheduleClose);
+  // Click button to toggle panel
   button.addEventListener("click", () => {
     if (dragMoved) {
       dragMoved = false;
