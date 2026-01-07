@@ -2,6 +2,7 @@
 Battle state management for LoRArena Battle Display Node.
 
 Stores battle images and metadata from node execution for display in iframe.
+Supports a pending_battles queue for pre-generation caching.
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,9 @@ _current_battle: Dict[str, Any] = {
     "winner": None,
 }
 
+# Pending battles queue for pre-generation
+_pending_battles: List[Dict[str, Any]] = []
+
 # Lock for thread-safe access
 _lock = threading.Lock()
 
@@ -39,24 +43,47 @@ def set_battle(
     lora_name_a: str,
     lora_name_b: str,
 ) -> None:
-    """Set current battle data from node execution."""
+    """
+    Set current battle data from node execution.
+
+    If there's already an active battle (not voted), this battle is added
+    to the pending queue for later display.
+    """
     global _current_battle
+
+    new_battle = {
+        "battle_id": battle_id,
+        "image_url_a": image_url_a,
+        "image_url_b": image_url_b,
+        "lora_name_a": lora_name_a,
+        "lora_name_b": lora_name_b,
+        "timestamp": time.time(),
+        "voted": False,
+        "winner": None,
+    }
+
     with _lock:
-        _current_battle = {
-            "battle_id": battle_id,
-            "image_url_a": image_url_a,
-            "image_url_b": image_url_b,
-            "lora_name_a": lora_name_a,
-            "lora_name_b": lora_name_b,
-            "timestamp": time.time(),
-            "voted": False,
-            "winner": None,
-        }
-        _vote_event.clear()
-    logger.info(
-        "[LoRArena] Battle set: id=%s, lora_a=%s, lora_b=%s",
-        battle_id, lora_name_a, lora_name_b
-    )
+        # Check if current battle is active (not voted)
+        current_active = (
+            _current_battle.get("battle_id") is not None
+            and not _current_battle.get("voted", False)
+        )
+
+        if current_active:
+            # Add to pending queue
+            _pending_battles.append(new_battle)
+            logger.info(
+                "[LoRArena] Battle queued: id=%s (pending=%d)",
+                battle_id, len(_pending_battles)
+            )
+        else:
+            # Set as current battle
+            _current_battle = new_battle
+            _vote_event.clear()
+            logger.info(
+                "[LoRArena] Battle set: id=%s, lora_a=%s, lora_b=%s",
+                battle_id, lora_name_a, lora_name_b
+            )
 
 
 def get_battle() -> Dict[str, Any]:
@@ -68,6 +95,8 @@ def get_battle() -> Dict[str, Any]:
             _current_battle.get("battle_id") is not None
             and not _current_battle.get("voted", False)
         )
+        # Add pending queue count
+        result["pending_count"] = len(_pending_battles)
         return result
 
 
@@ -83,6 +112,8 @@ def has_battle() -> bool:
 def submit_vote(winner: str) -> bool:
     """
     Submit a vote for the current battle.
+
+    After voting, automatically loads the next pending battle if available.
 
     Args:
         winner: "a", "b", "tie", or "skip"
@@ -101,10 +132,25 @@ def submit_vote(winner: str) -> bool:
         _current_battle["winner"] = winner
         _vote_event.set()
 
-    logger.info(
-        "[LoRArena] Vote submitted: battle=%s, winner=%s",
-        _current_battle.get("battle_id"), winner
-    )
+        battle_id = _current_battle.get("battle_id")
+
+        # Auto-load next pending battle
+        if _pending_battles:
+            next_battle = _pending_battles.pop(0)
+            logger.info(
+                "[LoRArena] Vote submitted: battle=%s, winner=%s. Loading next battle: %s (remaining=%d)",
+                battle_id, winner, next_battle.get("battle_id"), len(_pending_battles)
+            )
+            # Keep voted battle info briefly for UI, then switch
+            # Actually switch immediately for better UX
+            _current_battle = next_battle
+            _vote_event.clear()
+        else:
+            logger.info(
+                "[LoRArena] Vote submitted: battle=%s, winner=%s. No pending battles.",
+                battle_id, winner
+            )
+
     return True
 
 
@@ -164,4 +210,21 @@ def get_status() -> Dict[str, Any]:
             "lora_name_b": _current_battle.get("lora_name_b", ""),
             "voted": _current_battle.get("voted", False),
             "winner": _current_battle.get("winner"),
+            "pending_count": len(_pending_battles),
         }
+
+
+def get_pending_count() -> int:
+    """Get the number of pending battles in the queue."""
+    with _lock:
+        return len(_pending_battles)
+
+
+def clear_pending() -> int:
+    """Clear all pending battles. Returns the number cleared."""
+    global _pending_battles
+    with _lock:
+        count = len(_pending_battles)
+        _pending_battles = []
+        logger.info("[LoRArena] Cleared %d pending battles", count)
+        return count

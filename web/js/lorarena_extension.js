@@ -423,13 +423,13 @@ async function saveHoverConfig(panel) {
     let value = field.value;
     if (value === "") return;
 
-    if (["steps", "width", "height", "battle_royale_threshold", "auto_queue_target", "auto_queue_max"].includes(key)) {
+    if (["battle_royale_threshold", "auto_queue_target", "auto_queue_max"].includes(key)) {
       const parsed = parseInt(value, 10);
       if (!Number.isNaN(parsed)) payload[key] = parsed;
       return;
     }
 
-    if (["cfg_scale", "lora_strength", "battle_royale_win_rate"].includes(key)) {
+    if (["lora_strength", "battle_royale_win_rate"].includes(key)) {
       const parsed = parseFloat(value);
       if (!Number.isNaN(parsed)) payload[key] = parsed;
       return;

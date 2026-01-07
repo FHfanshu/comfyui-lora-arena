@@ -145,7 +145,9 @@ class LoRArenaMatchmaker:
         return ""
 
     @classmethod
-    def IS_CHANGED(cls, *args, **kwargs):
-        """Always re-execute to select new random LoRAs each time."""
-        import time
-        return time.time()
+    def IS_CHANGED(cls, source, strategy, seed, **kwargs):
+        """Only re-execute when seed=0 (random mode)."""
+        if seed == 0:
+            import time
+            return time.time()  # Random mode: always change
+        return seed  # Fixed seed: only change when seed changes

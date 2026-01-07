@@ -87,31 +87,15 @@ def _register_api_routes() -> None:
 
     def _default_config() -> dict:
         return {
-            "comfyui_url": "",
             "lora_directory": "",
-            "base_model": "",
-            "steps": 20,
-            "cfg_scale": 7.0,
-            "sampler": "euler_ancestral",
-            "scheduler": "normal",
             "lora_strength": 0.8,
-            "width": 1024,
-            "height": 1024,
-            "tipo_tag_length": "long",
-            "worker_enabled": False,
-            "worker_interval": 10,
-            "worker_target_cache": 5,
-            "worker_use_training_tags": False,
-            "parallel_generation": True,
+            "training_data_directory": "",
             "battle_royale_enabled": False,
             "battle_royale_threshold": 10,
             "battle_royale_win_rate": 0.5,
-            "remote_comfyui": False,
-            "training_data_directory": "",
             "auto_queue_enabled": False,
-            "auto_queue_count": 3,
-            "auto_queue_target": 30,  # Target queue depth
-            "auto_queue_max": 100,    # Maximum queue depth
+            "auto_queue_target": 10,  # Target queue depth
+            "auto_queue_max": 30,     # Maximum queue depth
             "prompt_prefix": "",      # Custom prompt prefix
             "mode": "host",           # "host" or "guest" mode
         }
@@ -134,15 +118,7 @@ def _register_api_routes() -> None:
         return base
 
     config_state = _load_config()
-    print(
-        "[LoRArena] config loaded",
-        {
-            "base_model": config_state.get("base_model", ""),
-            "width": config_state.get("width", 1024),
-            "height": config_state.get("height", 1024),
-            "sampler": config_state.get("sampler", "euler_ancestral"),
-        },
-    )
+    print("[LoRArena] config loaded")
 
     # Helper to check if current mode allows host-only actions
     def _is_guest_mode() -> bool:
@@ -477,13 +453,13 @@ def _register_api_routes() -> None:
                 prompt=prompt or "masterpiece, best quality, 1girl",
                 negative_prompt="",
                 seed=seed,
-                width=config_state.get("width", 1024),
-                height=config_state.get("height", 1024),
-                steps=config_state.get("steps", 20),
-                cfg_scale=config_state.get("cfg_scale", 7.0),
-                sampler=config_state.get("sampler", "euler_ancestral"),
+                width=1024,   # Default, workflow can override
+                height=1024,
+                steps=20,
+                cfg_scale=7.0,
+                sampler="euler_ancestral",
                 lora_strength=config_state.get("lora_strength", 0.8),
-                base_model=config_state.get("base_model", ""),
+                base_model="",
             )
             battle.status = "generating"
             db.commit()
@@ -512,9 +488,9 @@ def _register_api_routes() -> None:
                 steps=battle_steps,
                 cfg_scale=battle_cfg,
                 sampler_name=battle_sampler,
-                scheduler=config_state.get("scheduler", "normal"),
+                scheduler="normal",
                 lora_strength=config_state.get("lora_strength", 0.8),
-                base_model=config_state.get("base_model", ""),
+                base_model="",
                 battle_id=battle_id,
             )
 
@@ -858,10 +834,10 @@ def _register_api_routes() -> None:
             return web.json_response({
                 "success": success,
                 "winner": winner,
+                "pending_count": battle_state.get_pending_count(),
                 "auto_queue_enabled": config_state.get("auto_queue_enabled", False),
-                "auto_queue_count": config_state.get("auto_queue_count", 3),
-                "auto_queue_target": config_state.get("auto_queue_target", 30),
-                "auto_queue_max": config_state.get("auto_queue_max", 100),
+                "auto_queue_target": config_state.get("auto_queue_target", 10),
+                "auto_queue_max": config_state.get("auto_queue_max", 30),
             })
         except Exception as exc:
             return web.json_response(

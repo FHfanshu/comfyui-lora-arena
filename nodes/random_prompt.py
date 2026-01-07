@@ -122,7 +122,9 @@ class LoRArenaRandomPrompt:
         return ""
 
     @classmethod
-    def IS_CHANGED(cls, *args, **kwargs):
-        """Always re-execute to select a new random prompt each time."""
-        import time
-        return time.time()
+    def IS_CHANGED(cls, seed, prompt_prefix=None, negative_prompt=None, **kwargs):
+        """Only re-execute when seed=0 (random mode)."""
+        if seed == 0:
+            import time
+            return time.time()  # Random mode: always change
+        return seed  # Fixed seed: only change when seed changes

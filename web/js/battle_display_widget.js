@@ -35,6 +35,7 @@ const LANG = (() => {
         noBattleYet: isZh ? "暂无对战。请运行节点。" : "No battle yet. Run the node.",
         readyMissingImages: isZh ? "对战已准备好，但图片丢失。" : "Battle ready, images missing.",
         failedFetch: isZh ? "获取对战数据失败。" : "Failed to fetch battle data.",
+        pending: isZh ? "待投票" : "Pending",
     };
 })();
 
@@ -151,7 +152,7 @@ app.registerExtension({
             title.textContent = LANG.title;
             area.appendChild(title);
 
-            // Status + refresh
+            // Status + queue depth + refresh
             const statusBar = document.createElement("div");
             statusBar.style.cssText = `
                 display: flex;
@@ -164,6 +165,19 @@ app.registerExtension({
             `;
             const statusText = document.createElement("span");
             statusText.textContent = "Waiting for images...";
+
+            // Queue depth indicator
+            const queueBadge = document.createElement("span");
+            queueBadge.style.cssText = `
+                padding: 2px 8px;
+                border-radius: 10px;
+                background: #374151;
+                color: #9ca3af;
+                font-size: 10px;
+                display: none;
+            `;
+            queueBadge.textContent = "";
+
             const refreshBtn = document.createElement("button");
             refreshBtn.textContent = "Refresh";
             refreshBtn.style.cssText = `
@@ -193,6 +207,7 @@ app.registerExtension({
             refreshBtn.addEventListener("mousedown", (e) => e.stopPropagation());
             refreshBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
             statusBar.appendChild(statusText);
+            statusBar.appendChild(queueBadge);
             statusBar.appendChild(refreshBtn);
             area.appendChild(statusBar);
 
@@ -228,6 +243,7 @@ app.registerExtension({
             this._labelA = imageAWrapper.querySelector(".lora-label");
             this._labelB = imageBWrapper.querySelector(".lora-label");
             this._statusText = statusText;
+            this._queueBadge = queueBadge;
             this._hasBattle = false;
             this._hasVoted = false;  // Track if user has voted on current battle
             this._currentBattleId = null;
@@ -426,11 +442,23 @@ app.registerExtension({
                     if (this._statusText) {
                         this._statusText.textContent = `${LANG.voted}: ${winner.toUpperCase()}`;
                     }
+
+                    // Check if there's a next battle in queue
+                    const hasPending = data.pending_count > 0;
+
                     // Fill queue after voting if auto_queue is enabled
                     if (data.auto_queue_enabled) {
                         const target = data.auto_queue_target || 10;
                         const max = data.auto_queue_max || 30;
                         await this._autoQueuePrompts(target, max);
+                    }
+
+                    // If there's a pending battle, load it after a short delay
+                    if (hasPending) {
+                        setTimeout(() => {
+                            this._hasVoted = false;
+                            this._fetchBattleData(true);
+                        }, 1500);  // Show result for 1.5 seconds
                     }
                 } else {
                     if (this._statusText) {
@@ -645,6 +673,20 @@ app.registerExtension({
                         this._statusText.textContent = LANG.readyMissingImages;
                     }
                 }
+
+                // Update queue badge
+                if (this._queueBadge) {
+                    const pendingCount = data.pending_count || 0;
+                    if (pendingCount > 0) {
+                        this._queueBadge.textContent = `${LANG.pending}: ${pendingCount}`;
+                        this._queueBadge.style.display = "inline";
+                        this._queueBadge.style.background = "#10b981";
+                        this._queueBadge.style.color = "#fff";
+                    } else {
+                        this._queueBadge.style.display = "none";
+                    }
+                }
+
                 this._hasBattle = !!(data.has_battle && hasImages);
                 this._setVotingEnabled(this._hasBattle);
 
