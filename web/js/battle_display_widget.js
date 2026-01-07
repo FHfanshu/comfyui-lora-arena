@@ -122,8 +122,9 @@ app.registerExtension({
                 flex: 1;
                 display: flex;
                 flex-direction: column;
-                padding: 16px;
-                gap: 16px;
+                padding: 8px;
+                gap: 4px;
+                min-height: 0;
             `;
 
             // Title
@@ -131,8 +132,9 @@ app.registerExtension({
             title.style.cssText = `
                 text-align: center;
                 color: #fff;
-                font-size: 18px;
+                font-size: 16px;
                 font-weight: bold;
+                flex-shrink: 0;
             `;
             title.textContent = LANG.title;
             area.appendChild(title);
@@ -143,21 +145,22 @@ app.registerExtension({
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                gap: 12px;
+                gap: 8px;
                 color: #9ca3af;
-                font-size: 12px;
+                font-size: 11px;
+                flex-shrink: 0;
             `;
             const statusText = document.createElement("span");
             statusText.textContent = "Waiting for images...";
             const refreshBtn = document.createElement("button");
             refreshBtn.textContent = "Refresh";
             refreshBtn.style.cssText = `
-                padding: 6px 12px;
+                padding: 4px 10px;
                 border: 1px solid #374151;
                 border-radius: 6px;
                 background: #111827;
                 color: #e5e7eb;
-                font-size: 12px;
+                font-size: 11px;
                 cursor: pointer;
                 transition: all 0.15s ease;
                 pointer-events: auto;
@@ -181,26 +184,35 @@ app.registerExtension({
             statusBar.appendChild(refreshBtn);
             area.appendChild(statusBar);
 
-            // Images container
+            // Images container - takes all remaining space
             const imagesContainer = document.createElement("div");
             imagesContainer.style.cssText = `
                 flex: 1;
                 display: flex;
-                gap: 16px;
+                gap: 8px;
                 justify-content: center;
-                align-items: center;
+                align-items: stretch;
+                min-height: 0;
+                position: relative;
             `;
 
             // Image A
             const imageAWrapper = this._createImageWrapper("A");
             imagesContainer.appendChild(imageAWrapper);
 
-            // VS divider
+            // VS divider - positioned absolutely in center
             const vs = document.createElement("div");
             vs.style.cssText = `
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
                 color: #f59e0b;
-                font-size: 24px;
+                font-size: 20px;
                 font-weight: bold;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+                z-index: 10;
+                pointer-events: none;
             `;
             vs.textContent = "VS";
             imagesContainer.appendChild(vs);
@@ -232,21 +244,18 @@ app.registerExtension({
             const wrapper = document.createElement("div");
             wrapper.style.cssText = `
                 flex: 1;
-                width: 0; /* Important for flex scaling */
-                height: 100%;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                gap: 8px;
-                position: relative;
+                gap: 4px;
                 min-width: 0;
+                min-height: 0;
             `;
 
             const imgContainer = document.createElement("div");
             imgContainer.style.cssText = `
                 flex: 1;
                 width: 100%;
-                height: 0; /* Important for flex scaling */
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -254,6 +263,7 @@ app.registerExtension({
                 border-radius: 8px;
                 border: 2px solid #333;
                 overflow: hidden;
+                min-height: 0;
             `;
 
             const img = document.createElement("img");
@@ -273,14 +283,14 @@ app.registerExtension({
             labelDiv.className = "lora-label";
             labelDiv.style.cssText = `
                 color: #888;
-                font-size: 13px;
+                font-size: 12px;
                 text-align: center;
                 width: 100%;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
                 font-family: monospace;
-                padding: 4px 0;
+                flex-shrink: 0;
             `;
             labelDiv.textContent = `LoRA ${label}`;
             wrapper.appendChild(labelDiv);
@@ -298,8 +308,9 @@ app.registerExtension({
             container.style.cssText = `
                 display: flex;
                 justify-content: center;
-                gap: 16px;
-                padding: 16px 0;
+                gap: 12px;
+                padding: 8px 0;
+                flex-shrink: 0;
             `;
 
             const buttons = [
