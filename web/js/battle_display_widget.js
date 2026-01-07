@@ -232,37 +232,61 @@ app.registerExtension({
             const wrapper = document.createElement("div");
             wrapper.style.cssText = `
                 flex: 1;
-                max-width: 45%;
+                width: 0; /* Important for flex scaling */
+                height: 100%;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 gap: 8px;
+                position: relative;
+                min-width: 0;
+            `;
+
+            const imgContainer = document.createElement("div");
+            imgContainer.style.cssText = `
+                flex: 1;
+                width: 100%;
+                height: 0; /* Important for flex scaling */
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: #0f0f1a;
+                border-radius: 8px;
+                border: 2px solid #333;
+                overflow: hidden;
             `;
 
             const img = document.createElement("img");
             img.style.cssText = `
                 max-width: 100%;
-                max-height: 350px;
-                border-radius: 8px;
-                border: 2px solid #333;
-                background: #0f0f1a;
+                max-height: 100%;
+                width: auto;
+                height: auto;
+                object-fit: contain;
+                display: block;
             `;
             img.src = "";
-            wrapper.appendChild(img);
+            imgContainer.appendChild(img);
+            wrapper.appendChild(imgContainer);
 
             const labelDiv = document.createElement("div");
             labelDiv.className = "lora-label";
             labelDiv.style.cssText = `
                 color: #888;
-                font-size: 12px;
+                font-size: 13px;
                 text-align: center;
-                max-width: 100%;
+                width: 100%;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+                font-family: monospace;
+                padding: 4px 0;
             `;
             labelDiv.textContent = `LoRA ${label}`;
             wrapper.appendChild(labelDiv);
+
+            // Store ref to container for border styling
+            wrapper._imgContainer = imgContainer;
 
             return wrapper;
         };
@@ -274,33 +298,36 @@ app.registerExtension({
             container.style.cssText = `
                 display: flex;
                 justify-content: center;
-                gap: 12px;
+                gap: 16px;
                 padding: 16px 0;
             `;
 
             const buttons = [
-                { label: LANG.aBetter, value: "a", color: "#3b82f6", hoverColor: "#2563eb" },
-                { label: LANG.tie, value: "tie", color: "#6b7280", hoverColor: "#4b5563" },
-                { label: LANG.bBetter, value: "b", color: "#22c55e", hoverColor: "#16a34a" },
-                { label: LANG.skip, value: "skip", color: "#ef4444", hoverColor: "#dc2626" },
+                { label: LANG.aBetter, value: "a", color: "rgba(59, 130, 246, 0.2)", borderColor: "rgba(59, 130, 246, 0.5)", hoverColor: "rgba(59, 130, 246, 0.4)" },
+                { label: LANG.tie, value: "tie", color: "rgba(107, 114, 128, 0.2)", borderColor: "rgba(107, 114, 128, 0.5)", hoverColor: "rgba(107, 114, 128, 0.4)" },
+                { label: LANG.bBetter, value: "b", color: "rgba(34, 197, 94, 0.2)", borderColor: "rgba(34, 197, 94, 0.5)", hoverColor: "rgba(34, 197, 94, 0.4)" },
+                { label: LANG.skip, value: "skip", color: "rgba(239, 68, 68, 0.2)", borderColor: "rgba(239, 68, 68, 0.5)", hoverColor: "rgba(239, 68, 68, 0.4)" },
             ];
 
             this._voteButtons = [];
             buttons.forEach(btn => {
                 const button = document.createElement("button");
                 button.style.cssText = `
-                    padding: 12px 24px;
-                    border: none;
-                    border-radius: 8px;
+                    padding: 12px 28px;
+                    border: 1px solid ${btn.borderColor};
+                    border-radius: 12px;
                     background: ${btn.color};
                     color: white;
                     font-size: 14px;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: all 0.15s ease;
-                    transform: scale(1);
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    backdrop-filter: blur(8px);
+                    -webkit-backdrop-filter: blur(8px);
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                     pointer-events: auto;
+                    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+                    min-width: 100px;
                 `;
                 button.textContent = btn.label;
 
@@ -308,14 +335,16 @@ app.registerExtension({
                 button.addEventListener("mouseenter", () => {
                     if (!button.disabled) {
                         button.style.background = btn.hoverColor;
-                        button.style.transform = "scale(1.05)";
-                        button.style.boxShadow = "0 4px 12px rgba(0,0,0,0.4)";
+                        button.style.transform = "translateY(-2px)";
+                        button.style.boxShadow = "0 6px 12px rgba(0, 0, 0, 0.2)";
+                        button.style.borderColor = btn.borderColor.replace("0.5", "0.8");
                     }
                 });
                 button.addEventListener("mouseleave", () => {
                     button.style.background = btn.color;
-                    button.style.transform = "scale(1)";
-                    button.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+                    button.style.transform = "translateY(0)";
+                    button.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
+                    button.style.borderColor = btn.borderColor;
                 });
 
                 // Click with animation
@@ -327,7 +356,7 @@ app.registerExtension({
                     // Click animation
                     button.style.transform = "scale(0.95)";
                     setTimeout(() => {
-                        button.style.transform = "scale(1)";
+                        button.style.transform = "translateY(0)";
                     }, 100);
 
                     self._submitVote(btn.value);
@@ -416,39 +445,64 @@ app.registerExtension({
 
         // Show vote result with animation
         nodeType.prototype._showVoteResult = function(winner) {
+            const loraNameA = this._loraNameA || "LoRA A";
+            const loraNameB = this._loraNameB || "LoRA B";
+
             // Add winner highlight animation
-            if (winner === "a" && this._imageA) {
-                this._imageA.style.transition = "all 0.3s ease";
-                this._imageA.style.border = "3px solid #22c55e";
-                this._imageA.style.boxShadow = "0 0 20px rgba(34, 197, 94, 0.5)";
+            if (winner === "a" && this._imageA && this._imageA.parentNode) {
+                const container = this._imageA.parentNode;
+                container.style.transition = "all 0.3s ease";
+                container.style.border = "3px solid #22c55e";
+                container.style.boxShadow = "0 0 20px rgba(34, 197, 94, 0.5)";
+
                 if (this._labelA) {
                     this._labelA.style.color = "#22c55e";
                     this._labelA.style.fontWeight = "bold";
-                    this._labelA.textContent = LANG.winnerA;
+                    this._labelA.textContent = `${loraNameA} ✓`;
+                    this._labelA.title = loraNameA;
                 }
-                if (this._imageB) {
-                    this._imageB.style.opacity = "0.5";
+
+                // Show loser name too but dimmed
+                if (this._labelB) {
+                    this._labelB.textContent = loraNameB;
+                    this._labelB.title = loraNameB;
                 }
-            } else if (winner === "b" && this._imageB) {
-                this._imageB.style.transition = "all 0.3s ease";
-                this._imageB.style.border = "3px solid #22c55e";
-                this._imageB.style.boxShadow = "0 0 20px rgba(34, 197, 94, 0.5)";
+
+                if (this._imageB && this._imageB.parentNode) {
+                    this._imageB.parentNode.style.opacity = "0.5";
+                }
+            } else if (winner === "b" && this._imageB && this._imageB.parentNode) {
+                const container = this._imageB.parentNode;
+                container.style.transition = "all 0.3s ease";
+                container.style.border = "3px solid #22c55e";
+                container.style.boxShadow = "0 0 20px rgba(34, 197, 94, 0.5)";
+
                 if (this._labelB) {
                     this._labelB.style.color = "#22c55e";
                     this._labelB.style.fontWeight = "bold";
-                    this._labelB.textContent = LANG.winnerB;
+                    this._labelB.textContent = `${loraNameB} ✓`;
+                    this._labelB.title = loraNameB;
                 }
-                if (this._imageA) {
-                    this._imageA.style.opacity = "0.5";
+
+                // Show loser name too but dimmed
+                if (this._labelA) {
+                    this._labelA.textContent = loraNameA;
+                    this._labelA.title = loraNameA;
+                }
+
+                if (this._imageA && this._imageA.parentNode) {
+                    this._imageA.parentNode.style.opacity = "0.5";
                 }
             } else if (winner === "tie") {
                 if (this._labelA) {
                     this._labelA.style.color = "#f59e0b";
-                    this._labelA.textContent = LANG.tieA;
+                    this._labelA.textContent = `${loraNameA} (=)`;
+                    this._labelA.title = loraNameA;
                 }
                 if (this._labelB) {
                     this._labelB.style.color = "#f59e0b";
-                    this._labelB.textContent = LANG.tieB;
+                    this._labelB.textContent = `${loraNameB} (=)`;
+                    this._labelB.title = loraNameB;
                 }
             }
         };
@@ -499,17 +553,19 @@ app.registerExtension({
 
         // Reset image styles to default (clear vote result highlights)
         nodeType.prototype._resetImageStyles = function() {
-            if (this._imageA) {
-                this._imageA.style.transition = "";
-                this._imageA.style.border = "2px solid #333";
-                this._imageA.style.boxShadow = "";
-                this._imageA.style.opacity = "1";
+            if (this._imageA && this._imageA.parentNode) {
+                const container = this._imageA.parentNode;
+                container.style.transition = "";
+                container.style.border = "2px solid #333";
+                container.style.boxShadow = "";
+                container.style.opacity = "1";
             }
-            if (this._imageB) {
-                this._imageB.style.transition = "";
-                this._imageB.style.border = "2px solid #333";
-                this._imageB.style.boxShadow = "";
-                this._imageB.style.opacity = "1";
+            if (this._imageB && this._imageB.parentNode) {
+                const container = this._imageB.parentNode;
+                container.style.transition = "";
+                container.style.border = "2px solid #333";
+                container.style.boxShadow = "";
+                container.style.opacity = "1";
             }
             if (this._labelA) {
                 this._labelA.style.color = "#888";
@@ -537,6 +593,11 @@ app.registerExtension({
                 const response = await fetch("/lorarena/api/node/battle/current");
                 const data = await response.json();
                 const hasImages = !!(data.image_a && data.image_b);
+
+                // Store LoRA names for reveal
+                this._loraNameA = data.lora_name_a;
+                this._loraNameB = data.lora_name_b;
+
                 if (this._statusText) {
                     if (hasImages) {
                         this._statusText.textContent = "";
@@ -561,8 +622,15 @@ app.registerExtension({
                     }
                     if (this._imageA) this._imageA.src = data.image_a || "";
                     if (this._imageB) this._imageB.src = data.image_b || "";
-                    if (this._labelA) this._labelA.textContent = LANG.loraA;
-                    if (this._labelB) this._labelB.textContent = LANG.loraB;
+
+                    // Only mask names if not voted yet
+                    if (!data.voted) {
+                        if (this._labelA) this._labelA.textContent = LANG.loraA;
+                        if (this._labelB) this._labelB.textContent = LANG.loraB;
+                    } else if (data.winner) {
+                        // Restore winner display if already voted
+                        this._showVoteResult(data.winner);
+                    }
                 } else {
                     if (this._imageA) this._imageA.src = "";
                     if (this._imageB) this._imageB.src = "";
