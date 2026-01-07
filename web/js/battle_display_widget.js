@@ -200,13 +200,13 @@ app.registerExtension({
             const imageAWrapper = this._createImageWrapper("A");
             imagesContainer.appendChild(imageAWrapper);
 
-            // VS divider - positioned absolutely in center
+            // VS divider - positioned at top center
             const vs = document.createElement("div");
             vs.style.cssText = `
                 position: absolute;
                 left: 50%;
-                top: 50%;
-                transform: translate(-50%, -50%);
+                top: 16px;
+                transform: translateX(-50%);
                 color: #f59e0b;
                 font-size: 20px;
                 font-weight: bold;
