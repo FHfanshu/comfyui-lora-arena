@@ -200,23 +200,6 @@ app.registerExtension({
             const imageAWrapper = this._createImageWrapper("A");
             imagesContainer.appendChild(imageAWrapper);
 
-            // VS divider - positioned at top center
-            const vs = document.createElement("div");
-            vs.style.cssText = `
-                position: absolute;
-                left: 50%;
-                top: 16px;
-                transform: translateX(-50%);
-                color: #f59e0b;
-                font-size: 20px;
-                font-weight: bold;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-                z-index: 10;
-                pointer-events: none;
-            `;
-            vs.textContent = "VS";
-            imagesContainer.appendChild(vs);
-
             // Image B
             const imageBWrapper = this._createImageWrapper("B");
             imagesContainer.appendChild(imageBWrapper);
