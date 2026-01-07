@@ -38,6 +38,10 @@ class LoRArenaRandomPrompt:
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
             },
             "optional": {
+                "prompt_prefix": ("STRING", {
+                    "default": "",
+                    "multiline": True,
+                }),
                 "negative_prompt": ("STRING", {
                     "default": DEFAULT_NEGATIVE,
                     "multiline": True,
@@ -53,6 +57,7 @@ class LoRArenaRandomPrompt:
     def select_prompt(
         self,
         seed: int,
+        prompt_prefix: str = "",
         negative_prompt: str = DEFAULT_NEGATIVE,
     ) -> Tuple[str, str, int]:
         """Select a random prompt from training data directory."""
@@ -67,6 +72,10 @@ class LoRArenaRandomPrompt:
         prompt_directory = self._load_config_training_directory()
         print(f"[LoRArena] RandomPrompt: training_data_directory = '{prompt_directory}'")
         prompt = self._from_directory(prompt_directory, gen)
+
+        # Apply prefix if provided
+        if prompt_prefix and prompt_prefix.strip():
+            prompt = f"{prompt_prefix.strip()}, {prompt}"
 
         print(f"[LoRArena] RandomPrompt: Final prompt = '{prompt[:50]}...' (truncated)")
         return (prompt, negative_prompt, seed)
