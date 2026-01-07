@@ -64,7 +64,9 @@ class MatchmakingService:
         """Get all active checkpoints, optionally excluding some.
 
         Also applies Battle Royale filtering if enabled:
-        - Checkpoints with total_battles >= threshold AND win_rate < min_win_rate are excluded.
+        - Only triggers when ALL checkpoints have reached the minimum battle threshold
+        - Then eliminates checkpoints with low win rate AND low ELO ranking
+        - Always keeps at least 2 checkpoints for battles
         """
         query = select(Checkpoint).where(Checkpoint.is_active == True)
         if exclude_ids:
@@ -74,13 +76,31 @@ class MatchmakingService:
 
         # Apply Battle Royale filtering
         config = _load_config()
-        if config.get("battle_royale_enabled", False):
+        if config.get("battle_royale_enabled", False) and len(checkpoints) > 2:
             threshold = config.get("battle_royale_threshold", 10)
             min_win_rate = config.get("battle_royale_win_rate", 0.3)
-            checkpoints = [
-                c for c in checkpoints
-                if c.total_battles < threshold or c.win_rate >= min_win_rate
-            ]
+
+            # Only trigger elimination when ALL checkpoints have reached threshold
+            all_reached_threshold = all(c.total_battles >= threshold for c in checkpoints)
+
+            if all_reached_threshold:
+                # Sort by ELO to identify bottom performers
+                sorted_by_elo = sorted(checkpoints, key=lambda c: c.elo_rating)
+
+                # Find low performers: low win rate AND in bottom half of ELO
+                low_performers = [
+                    c for c in sorted_by_elo
+                    if c.win_rate < min_win_rate
+                ]
+
+                if low_performers:
+                    # Ensure we keep at least 2 checkpoints
+                    max_to_eliminate = len(checkpoints) - 2
+                    to_eliminate = low_performers[:max_to_eliminate]
+
+                    if to_eliminate:
+                        eliminated_ids = {c.id for c in to_eliminate}
+                        checkpoints = [c for c in checkpoints if c.id not in eliminated_ids]
 
         return checkpoints
 

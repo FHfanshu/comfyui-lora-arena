@@ -3,6 +3,14 @@
  */
 import { app } from "/scripts/app.js";
 
+// Helper function to extract filename from path
+function extractLoraName(fullPath) {
+    if (!fullPath) return fullPath;
+    // Handle Windows and Unix paths
+    const parts = fullPath.replace(/\\/g, '/').split('/');
+    return parts[parts.length - 1];
+}
+
 // Localization
 const LANG = (() => {
     const lang = navigator.language || "en";
@@ -59,6 +67,9 @@ app.registerExtension({
                 display: flex;
                 flex-direction: column;
                 pointer-events: auto;
+                user-select: none;
+                -webkit-user-select: none;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             `;
 
             // CRITICAL: Stop event propagation to prevent LiteGraph from intercepting
@@ -103,12 +114,18 @@ app.registerExtension({
             setTimeout(() => this._fetchBattleData(), 200);
             // Use incremental polling - check status first, then fetch full data only when needed
             this._battlePoll = setInterval(() => this._pollBattleStatus(), 3000);
+            // Queue monitor - periodically check and fill queue if needed
+            this._queueMonitor = setInterval(() => this._checkAndFillQueue(), 5000);
 
             const originalOnRemoved = this.onRemoved;
             this.onRemoved = function() {
                 if (this._battlePoll) {
                     clearInterval(this._battlePoll);
                     this._battlePoll = null;
+                }
+                if (this._queueMonitor) {
+                    clearInterval(this._queueMonitor);
+                    this._queueMonitor = null;
                 }
                 if (originalOnRemoved) {
                     originalOnRemoved.call(this);
@@ -413,16 +430,7 @@ app.registerExtension({
                     if (this._statusText) {
                         this._statusText.textContent = `${LANG.voted}: ${winner.toUpperCase()}`;
                     }
-
-                    // Smart auto-queue if enabled
-                    if (data.auto_queue_enabled) {
-                        const target = data.auto_queue_target || 30;
-                        const max = data.auto_queue_max || 100;
-                        console.log(`[LoRArena] Smart auto-queue: target=${target}, max=${max}`);
-                        setTimeout(() => {
-                            this._autoQueuePrompts(target, max);
-                        }, 500);
-                    }
+                    // Queue management is handled by periodic _checkAndFillQueue
                 } else {
                     if (this._statusText) {
                         this._statusText.textContent = data.error || LANG.voteRejected;
@@ -440,8 +448,8 @@ app.registerExtension({
 
         // Show vote result with animation
         nodeType.prototype._showVoteResult = function(winner) {
-            const loraNameA = this._loraNameA || "LoRA A";
-            const loraNameB = this._loraNameB || "LoRA B";
+            const loraNameA = extractLoraName(this._loraNameA) || "LoRA A";
+            const loraNameB = extractLoraName(this._loraNameB) || "LoRA B";
 
             // Add winner highlight animation
             if (winner === "a" && this._imageA && this._imageA.parentNode) {
@@ -547,6 +555,45 @@ app.registerExtension({
                 console.log(`[LoRArena] Queued ${needed} prompts successfully`);
             } catch (error) {
                 console.error("[LoRArena] Auto-queue failed:", error);
+            }
+        };
+
+        // Periodic queue monitor - check and fill queue if needed
+        nodeType.prototype._checkAndFillQueue = async function() {
+            try {
+                // Get config
+                const configResp = await fetch("/lorarena/api/config");
+                const config = await configResp.json();
+
+                if (!config.auto_queue_enabled) return;
+
+                // Get current queue status
+                const response = await fetch("/queue");
+                const queueData = await response.json();
+                const running = queueData.queue_running?.length || 0;
+                const pending = queueData.queue_pending?.length || 0;
+                const currentQueueSize = running + pending;
+
+                const target = config.auto_queue_target || 10;
+                const max = config.auto_queue_max || 30;
+
+                // Only fill if below target
+                if (currentQueueSize >= target) {
+                    return;
+                }
+
+                const needed = Math.min(target - currentQueueSize, max - currentQueueSize);
+                if (needed > 0) {
+                    console.log(`[LoRArena] Queue monitor: ${currentQueueSize}/${target}, adding ${needed}`);
+                    const comfyApp = window.app;
+                    if (comfyApp && comfyApp.queuePrompt) {
+                        for (let i = 0; i < needed; i++) {
+                            await comfyApp.queuePrompt(0, 1);
+                        }
+                    }
+                }
+            } catch (error) {
+                // Silent fail - don't spam console
             }
         };
 
