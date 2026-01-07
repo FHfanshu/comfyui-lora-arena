@@ -418,10 +418,8 @@
         "Node name for S&R": "LoRArenaRandomPrompt"
       },
       "widgets_values": [
-        "training_data",
         0,
         "randomize",
-        "",
         "lowres, bad anatomy, bad hands, text, error, worst quality"
       ]
     },

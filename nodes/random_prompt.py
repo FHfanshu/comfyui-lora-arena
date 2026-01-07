@@ -28,23 +28,16 @@ class LoRArenaRandomPrompt:
     """
     Randomly selects a prompt for LoRA battle testing.
 
-    Can use presets, custom text, or read from txt files in training data directory.
+    Reads prompts from txt files in the configured training_data_directory.
     """
-
-    MODES = ["preset", "training_data", "custom"]
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "mode": (cls.MODES, {"default": "preset"}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
             },
             "optional": {
-                "custom_prompts": ("STRING", {
-                    "default": "",
-                    "multiline": True,
-                }),
                 "negative_prompt": ("STRING", {
                     "default": DEFAULT_NEGATIVE,
                     "multiline": True,
@@ -59,33 +52,21 @@ class LoRArenaRandomPrompt:
 
     def select_prompt(
         self,
-        mode: str,
         seed: int,
-        custom_prompts: str = "",
         negative_prompt: str = DEFAULT_NEGATIVE,
     ) -> Tuple[str, str, int]:
-        """Select a random prompt."""
+        """Select a random prompt from training data directory."""
         original_seed = seed
         if seed == 0:
             seed = random.randint(0, 0xffffffffffffffff)
 
-        print(f"[LoRArena] RandomPrompt: mode='{mode}', original_seed={original_seed}, actual_seed={seed}")
+        print(f"[LoRArena] RandomPrompt: original_seed={original_seed}, actual_seed={seed}")
 
         gen = random.Random(seed)
 
-        prompt = ""
-
-        if mode == "training_data":
-            prompt_directory = self._load_config_training_directory()
-            print(f"[LoRArena] RandomPrompt: training_data_directory = '{prompt_directory}'")
-            prompt = self._from_directory(prompt_directory, gen)
-        elif mode == "custom" and custom_prompts.strip():
-            prompts = [p.strip() for p in custom_prompts.split("\n") if p.strip()]
-            prompt = gen.choice(prompts) if prompts else ""
-            print(f"[LoRArena] RandomPrompt: Selected from {len(prompts)} custom prompts")
-        else:
-            prompt = gen.choice(DEFAULT_PROMPTS)
-            print(f"[LoRArena] RandomPrompt: Selected from preset prompts")
+        prompt_directory = self._load_config_training_directory()
+        print(f"[LoRArena] RandomPrompt: training_data_directory = '{prompt_directory}'")
+        prompt = self._from_directory(prompt_directory, gen)
 
         print(f"[LoRArena] RandomPrompt: Final prompt = '{prompt[:50]}...' (truncated)")
         return (prompt, negative_prompt, seed)
