@@ -118,6 +118,10 @@ def _register_api_routes() -> None:
             "training_data_directory": "",
             "auto_queue_enabled": False,
             "auto_queue_count": 3,
+            "auto_queue_target": 30,  # Target queue depth
+            "auto_queue_max": 100,    # Maximum queue depth
+            "prompt_prefix": "",      # Custom prompt prefix
+            "mode": "host",           # "host" or "guest" mode
         }
 
     def _load_config() -> dict:
@@ -147,6 +151,10 @@ def _register_api_routes() -> None:
             "sampler": config_state.get("sampler", "euler_ancestral"),
         },
     )
+
+    # Helper to check if current mode allows host-only actions
+    def _is_guest_mode() -> bool:
+        return config_state.get("mode", "host") == "guest"
 
     # Full-page web app disabled. Using lightweight in-canvas widgets only.
 
@@ -182,8 +190,20 @@ def _register_api_routes() -> None:
                 if checkpoint_service._matches_directory(cp.filename, lora_directory)
             ][:limit]
 
+        # Get Battle Royale settings for elimination status
+        br_enabled = config_state.get("battle_royale_enabled", False)
+        br_threshold = config_state.get("battle_royale_threshold", 10)
+        br_win_rate = config_state.get("battle_royale_win_rate", 0.3)
+
         items = []
         for idx, checkpoint in enumerate(checkpoints, start=1):
+            # Check if checkpoint is eliminated in Battle Royale
+            eliminated = False
+            if br_enabled:
+                eliminated = (
+                    checkpoint.total_battles >= br_threshold
+                    and checkpoint.win_rate < br_win_rate
+                )
             items.append(
                 {
                     "rank": idx,
@@ -195,10 +215,15 @@ def _register_api_routes() -> None:
                     "losses": checkpoint.losses,
                     "ties": checkpoint.ties,
                     "win_rate": checkpoint.win_rate,
+                    "eliminated": eliminated,
                 }
             )
 
-        return web.json_response({"items": items, "total": len(items)})
+        return web.json_response({
+            "items": items,
+            "total": len(items),
+            "battle_royale_enabled": br_enabled,
+        })
 
     @PromptServer.instance.routes.get("/lorarena/api/leaderboard/{checkpoint_id}/history")
     async def lorarena_leaderboard_history(request):
@@ -275,6 +300,12 @@ def _register_api_routes() -> None:
 
     @PromptServer.instance.routes.post("/lorarena/api/checkpoints/scan")
     async def lorarena_checkpoints_scan(request):
+        # Guest mode: scanning not allowed
+        if _is_guest_mode():
+            return web.json_response(
+                {"error": "Guest mode: scanning not allowed"},
+                status=403,
+            )
         data = await request.json()
         directory = data.get("directory") if isinstance(data, dict) else None
         with db_manager.session_scope() as db:
@@ -398,6 +429,12 @@ def _register_api_routes() -> None:
 
     @PromptServer.instance.routes.post("/lorarena/api/battles/new")
     async def lorarena_battles_new(request):
+        # Guest mode: battle creation not allowed
+        if _is_guest_mode():
+            return web.json_response(
+                {"error": "Guest mode: battle creation not allowed"},
+                status=403,
+            )
         data = await request.json()
         prompt = data.get("prompt") if isinstance(data, dict) else None
         strategy = data.get("strategy", "balanced") if isinstance(data, dict) else "balanced"
@@ -664,6 +701,12 @@ def _register_api_routes() -> None:
 
     @PromptServer.instance.routes.put("/lorarena/api/config")
     async def lorarena_config_put(request):
+        # Guest mode: only allow reading config, not modifying
+        if _is_guest_mode():
+            return web.json_response(
+                {"error": "Guest mode: configuration changes not allowed"},
+                status=403,
+            )
         data = await request.json()
         if isinstance(data, dict):
             config_state.update(data)
@@ -791,6 +834,8 @@ def _register_api_routes() -> None:
                 "winner": winner,
                 "auto_queue_enabled": config_state.get("auto_queue_enabled", False),
                 "auto_queue_count": config_state.get("auto_queue_count", 3),
+                "auto_queue_target": config_state.get("auto_queue_target", 30),
+                "auto_queue_max": config_state.get("auto_queue_max", 100),
             })
         except Exception as exc:
             return web.json_response(

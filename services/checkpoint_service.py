@@ -143,13 +143,17 @@ class CheckpointService:
 
         existing = db.execute(select(Checkpoint.filename))
         existing_filenames = set(row[0] for row in existing.fetchall())
+        # Build a set of existing stems for deduplication
+        existing_stems = set(Path(fn).stem.lower() for fn in existing_filenames)
 
         for lora_name in available_loras:
             if directory and not self._matches_directory(lora_name, directory):
                 continue
 
             scanned += 1
-            if lora_name in existing_filenames:
+            stem = Path(lora_name).stem.lower()
+            # Skip if filename already exists or if stem already exists (dedup by stem)
+            if lora_name in existing_filenames or stem in existing_stems:
                 skipped += 1
                 continue
 
@@ -163,6 +167,7 @@ class CheckpointService:
                     is_active=True,
                 )
                 db.add(checkpoint)
+                existing_stems.add(stem)  # Track new stem to prevent duplicates in same scan
                 imported += 1
             except Exception as exc:
                 errors.append(f"Error importing {lora_name}: {exc}")

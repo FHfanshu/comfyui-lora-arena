@@ -22,12 +22,22 @@ const STRINGS = (() => {
     basic: isZh ? "基础配置" : "Basics",
     autoQueue: isZh ? "预生成" : "Pre-generate",
     autoQueueCount: isZh ? "预生成数量" : "Queue Count",
+    autoQueueTarget: isZh ? "目标队列深度" : "Target Queue",
+    autoQueueMax: isZh ? "最大队列深度" : "Max Queue",
+    autoQueueTargetHint: isZh ? "尝试保持的队列深度 (默认30)" : "Target queue depth (default 30)",
+    autoQueueMaxHint: isZh ? "队列最大深度 (默认100)" : "Maximum queue depth (default 100)",
+    promptPrefix: isZh ? "提示词前缀" : "Prompt Prefix",
+    promptPrefixHint: isZh ? "添加到随机提示词前面" : "Prepended to random prompts",
     battleRoyale: isZh ? "大逃杀模式" : "Battle Royale",
     battleRoyaleEnabled: isZh ? "启用大逃杀" : "Enable Battle Royale",
     battleRoyaleThreshold: isZh ? "最低场次" : "Min Battles",
     battleRoyaleWinRate: isZh ? "最低胜率" : "Min Win Rate",
     battleRoyaleThresholdHint: isZh ? "达到此场次后开始淘汰" : "Start elimination after this many battles",
     battleRoyaleWinRateHint: isZh ? "低于此胜率将被淘汰 (0-1)" : "Eliminate if win rate below this (0-1)",
+    hostGuest: isZh ? "模式" : "Mode",
+    hostMode: isZh ? "主持人模式" : "Host Mode",
+    guestMode: isZh ? "访客模式" : "Guest Mode",
+    modeHint: isZh ? "访客模式只能投票和看排行" : "Guest mode: vote and view only",
     scan: isZh ? "扫描导入" : "Scan LoRAs",
     scanning: isZh ? "扫描中..." : "Scanning...",
     scanSuccess: isZh ? "导入成功" : "Import success",
@@ -264,9 +274,24 @@ function createHoverPanel() {
           <label>${STRINGS.trainingDir}</label>
           <input type="text" data-field="training_data_directory" placeholder="E:\\Dataset\\748cm" />
         </div>
+        <div class="lorarena-field">
+          <label>${STRINGS.promptPrefix}</label>
+          <input type="text" data-field="prompt_prefix" placeholder="1girl, " />
+          <small style="color:#6b7280;font-size:10px;">${STRINGS.promptPrefixHint}</small>
+        </div>
         <div class="lorarena-toggle-row">
           <span class="lorarena-toggle-label">${STRINGS.autoQueue}</span>
           <div class="lorarena-toggle" data-field="auto_queue_enabled" data-type="boolean"></div>
+        </div>
+        <div class="lorarena-field">
+          <label>${STRINGS.autoQueueTarget}</label>
+          <input type="number" data-field="auto_queue_target" placeholder="30" min="1" max="100" />
+          <small style="color:#6b7280;font-size:10px;">${STRINGS.autoQueueTargetHint}</small>
+        </div>
+        <div class="lorarena-field">
+          <label>${STRINGS.autoQueueMax}</label>
+          <input type="number" data-field="auto_queue_max" placeholder="100" min="1" max="200" />
+          <small style="color:#6b7280;font-size:10px;">${STRINGS.autoQueueMaxHint}</small>
         </div>
       </div>
       <div class="lorarena-section">
@@ -284,6 +309,16 @@ function createHoverPanel() {
           <label>${STRINGS.battleRoyaleWinRate}</label>
           <input type="number" data-field="battle_royale_win_rate" placeholder="0.3" min="0" max="1" step="0.05" />
           <small style="color:#6b7280;font-size:10px;">${STRINGS.battleRoyaleWinRateHint}</small>
+        </div>
+      </div>
+      <div class="lorarena-section">
+        <div class="lorarena-section-title">${STRINGS.hostGuest}</div>
+        <div class="lorarena-field">
+          <select data-field="mode" style="width:100%;padding:6px 8px;border-radius:8px;border:1px solid #1f2937;background:#111827;color:#e5e7eb;font-size:12px;">
+            <option value="host">${STRINGS.hostMode}</option>
+            <option value="guest">${STRINGS.guestMode}</option>
+          </select>
+          <small style="color:#6b7280;font-size:10px;">${STRINGS.modeHint}</small>
         </div>
       </div>
     </div>
@@ -334,6 +369,32 @@ async function loadHoverConfig(panel) {
       toggle.onclick = () => toggle.classList.toggle("active");
     });
 
+    // Guest mode: disable editing of most fields
+    const isGuest = config.mode === "guest";
+    if (isGuest) {
+      // Disable all inputs except the mode selector itself
+      fields.forEach((field) => {
+        const key = field.getAttribute("data-field");
+        if (key !== "mode") {
+          field.disabled = true;
+          field.style.opacity = "0.5";
+          field.style.pointerEvents = "none";
+        }
+      });
+      // Disable save and scan buttons
+      const saveBtn = panel.querySelector(".lorarena-hover-save");
+      const scanBtn = panel.querySelector(".lorarena-scan-btn");
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = "0.5";
+      }
+      if (scanBtn) {
+        scanBtn.disabled = true;
+        scanBtn.style.opacity = "0.5";
+      }
+      if (status) status.textContent = STRINGS.guestMode;
+    }
+
   } catch (error) {
     if (status) status.textContent = STRINGS.loadFailed;
     console.error("[LoRArena] Failed to load hover config:", error);
@@ -362,7 +423,7 @@ async function saveHoverConfig(panel) {
     let value = field.value;
     if (value === "") return;
 
-    if (["steps", "width", "height", "battle_royale_threshold"].includes(key)) {
+    if (["steps", "width", "height", "battle_royale_threshold", "auto_queue_target", "auto_queue_max"].includes(key)) {
       const parsed = parseInt(value, 10);
       if (!Number.isNaN(parsed)) payload[key] = parsed;
       return;

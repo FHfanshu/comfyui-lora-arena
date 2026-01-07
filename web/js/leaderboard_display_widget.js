@@ -244,10 +244,17 @@ app.registerExtension({
                 const rankColor = idx === 0 ? "#ffd700" : idx === 1 ? "#c0c0c0" : idx === 2 ? "#cd7f32" : "#fff";
                 const displayName = this._formatLoraName(item.name);
                 const eloRounded = Math.round(item.elo_rating);
+                // Apply strikethrough style for eliminated LoRAs in Battle Royale mode
+                const eliminatedStyle = item.eliminated
+                    ? "text-decoration: line-through; opacity: 0.5;"
+                    : "";
+                const eliminatedTitle = item.eliminated
+                    ? ` (${isZh ? "已淘汰" : "Eliminated"})`
+                    : "";
                 html += `
-                    <tr style="color: #ddd; border-bottom: 1px solid #222;">
+                    <tr style="color: #ddd; border-bottom: 1px solid #222; ${eliminatedStyle}">
                         <td style="padding: 8px; color: ${rankColor}; font-weight: bold;">${item.rank}</td>
-                        <td style="padding: 8px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;" title="${item.name}">${displayName}</td>
+                        <td style="padding: 8px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;" title="${item.name}${eliminatedTitle}">${displayName}</td>
                         <td style="padding: 8px; text-align: right; color: #3b82f6;">${eloRounded}</td>
                         <td style="padding: 8px; text-align: right;">${item.total_battles}</td>
                         <td style="padding: 8px; text-align: right; color: ${item.win_rate >= 0.5 ? '#22c55e' : '#ef4444'};">${(item.win_rate * 100).toFixed(1)}%</td>

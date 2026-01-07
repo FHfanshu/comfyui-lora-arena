@@ -390,11 +390,13 @@ app.registerExtension({
                         this._statusText.textContent = `${LANG.voted}: ${winner.toUpperCase()}`;
                     }
 
-                    // Auto-queue if enabled
-                    if (data.auto_queue_enabled && data.auto_queue_count > 0) {
-                        console.log(`[LoRArena] Auto-queueing ${data.auto_queue_count} prompts...`);
+                    // Smart auto-queue if enabled
+                    if (data.auto_queue_enabled) {
+                        const target = data.auto_queue_target || 30;
+                        const max = data.auto_queue_max || 100;
+                        console.log(`[LoRArena] Smart auto-queue: target=${target}, max=${max}`);
                         setTimeout(() => {
-                            this._autoQueuePrompts(data.auto_queue_count);
+                            this._autoQueuePrompts(target, max);
                         }, 500);
                     }
                 } else {
@@ -451,21 +453,45 @@ app.registerExtension({
             }
         };
 
-        // Auto-queue prompts for pre-generation
-        nodeType.prototype._autoQueuePrompts = async function(count) {
+        // Smart auto-queue prompts for pre-generation
+        // target: desired queue depth, max: never exceed this
+        nodeType.prototype._autoQueuePrompts = async function(target, max) {
             try {
-                // Use ComfyUI's queue prompt API
+                // Use ComfyUI's API to check current queue depth
                 const app = window.app;
                 if (!app || !app.queuePrompt) {
                     console.warn("[LoRArena] ComfyUI app.queuePrompt not available");
                     return;
                 }
 
-                console.log(`[LoRArena] Queueing ${count} prompts for pre-generation...`);
-                for (let i = 0; i < count; i++) {
+                // Get current queue status
+                let currentQueueSize = 0;
+                try {
+                    const queueData = await app.api.getQueue();
+                    const running = queueData.queue_running?.length || 0;
+                    const pending = queueData.queue_pending?.length || 0;
+                    currentQueueSize = running + pending;
+                } catch (err) {
+                    console.warn("[LoRArena] Could not get queue status:", err);
+                }
+
+                // Calculate how many to queue
+                if (currentQueueSize >= max) {
+                    console.log(`[LoRArena] Queue already at max (${currentQueueSize}/${max}), skipping`);
+                    return;
+                }
+
+                const needed = Math.max(0, Math.min(target - currentQueueSize, max - currentQueueSize));
+                if (needed <= 0) {
+                    console.log(`[LoRArena] Queue at target (${currentQueueSize}/${target}), no need to add more`);
+                    return;
+                }
+
+                console.log(`[LoRArena] Smart queue: current=${currentQueueSize}, adding ${needed} (target=${target}, max=${max})`);
+                for (let i = 0; i < needed; i++) {
                     await app.queuePrompt(0, 1);  // queue at front, batch size 1
                 }
-                console.log(`[LoRArena] Queued ${count} prompts successfully`);
+                console.log(`[LoRArena] Queued ${needed} prompts successfully`);
             } catch (error) {
                 console.error("[LoRArena] Auto-queue failed:", error);
             }
