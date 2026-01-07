@@ -24,6 +24,7 @@ class LoRArenaLeaderboardDisplay:
         return {
             "required": {
                 "limit": ("INT", {"default": 20, "min": 1, "max": 100}),
+                "min_battles": ("INT", {"default": 0, "min": 0, "max": 9999}),
             },
             "optional": {
                 "trigger": ("*",),
@@ -36,7 +37,7 @@ class LoRArenaLeaderboardDisplay:
     CATEGORY = "LoRArena"
     OUTPUT_NODE = True
 
-    def show_leaderboard(self, limit: int = 20, trigger=None) -> Tuple:
+    def show_leaderboard(self, limit: int = 20, min_battles: int = 0, trigger=None) -> Tuple:
         """Fetch and display leaderboard data."""
         from sqlalchemy import select
         from ..services import db_manager, checkpoint_service
@@ -53,6 +54,7 @@ class LoRArenaLeaderboardDisplay:
                 query = (
                     select(Checkpoint)
                     .where(Checkpoint.is_active == True)
+                    .where(Checkpoint.total_battles >= min_battles)
                     .order_by(Checkpoint.elo_rating.desc())
                 )
                 if not lora_directory:

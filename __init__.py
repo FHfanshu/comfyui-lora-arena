@@ -10,14 +10,12 @@ from .nodes import (
     LoRArenaBattleGenerator,
     LoRArenaCheckpointScanner,
     LoRArenaELODisplay,
-    LoRArenaLeaderboard,
     LoRArenaMatchmaker,
     LoRArenaVoteRecorder,
     LoRArenaPanelNode,
     LoRArenaBattleDisplay,
     LoRArenaLeaderboardDisplay,
     LoRArenaLoraLoader,
-    LoRArenaRandomLoraPair,
     LoRArenaRandomPrompt,
 )
 
@@ -25,14 +23,12 @@ NODE_CLASS_MAPPINGS = {
     "LoRArenaMatchmaker": LoRArenaMatchmaker,
     "LoRArenaBattleGenerator": LoRArenaBattleGenerator,
     "LoRArenaVoteRecorder": LoRArenaVoteRecorder,
-    "LoRArenaLeaderboard": LoRArenaLeaderboard,
     "LoRArenaCheckpointScanner": LoRArenaCheckpointScanner,
     "LoRArenaELODisplay": LoRArenaELODisplay,
     "LoRArenaPanelNode": LoRArenaPanelNode,
     "LoRArenaBattleDisplay": LoRArenaBattleDisplay,
     "LoRArenaLeaderboardDisplay": LoRArenaLeaderboardDisplay,
     "LoRArenaLoraLoader": LoRArenaLoraLoader,
-    "LoRArenaRandomLoraPair": LoRArenaRandomLoraPair,
     "LoRArenaRandomPrompt": LoRArenaRandomPrompt,
 }
 
@@ -44,14 +40,12 @@ if _is_zh:
         "LoRArenaMatchmaker": "LoRArena 对战匹配",
         "LoRArenaBattleGenerator": "LoRArena 对战生成",
         "LoRArenaVoteRecorder": "LoRArena 投票记录",
-        "LoRArenaLeaderboard": "LoRArena 排行榜",
         "LoRArenaCheckpointScanner": "LoRArena 扫描导入",
         "LoRArenaELODisplay": "LoRArena ELO 统计",
         "LoRArenaPanelNode": "LoRArena 面板",
         "LoRArenaBattleDisplay": "LoRArena 对战展示",
         "LoRArenaLeaderboardDisplay": "LoRArena 排行榜展示",
         "LoRArenaLoraLoader": "LoRArena 加载LoRA(字符串)",
-        "LoRArenaRandomLoraPair": "LoRArena 随机LoRA对",
         "LoRArenaRandomPrompt": "LoRArena 随机提示词",
     }
 else:
@@ -59,14 +53,12 @@ else:
         "LoRArenaMatchmaker": "LoRArena Matchmaker",
         "LoRArenaBattleGenerator": "LoRArena Battle Generator",
         "LoRArenaVoteRecorder": "LoRArena Vote Recorder",
-        "LoRArenaLeaderboard": "LoRArena Leaderboard",
         "LoRArenaCheckpointScanner": "LoRArena Checkpoint Scanner",
         "LoRArenaELODisplay": "LoRArena ELO Display",
         "LoRArenaPanelNode": "LoRArena Panel",
         "LoRArenaBattleDisplay": "LoRArena Battle Display",
         "LoRArenaLeaderboardDisplay": "LoRArena Leaderboard Display",
         "LoRArenaLoraLoader": "LoRArena Load LoRA (String)",
-        "LoRArenaRandomLoraPair": "LoRArena Random LoRA Pair",
         "LoRArenaRandomPrompt": "LoRArena Random Prompt",
     }
 

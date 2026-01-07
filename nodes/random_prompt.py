@@ -28,10 +28,10 @@ class LoRArenaRandomPrompt:
     """
     Randomly selects a prompt for LoRA battle testing.
 
-    Can use presets, custom text, or read from txt files in a directory.
+    Can use presets, custom text, or read from txt files in training data directory.
     """
 
-    MODES = ["preset", "directory", "custom"]
+    MODES = ["preset", "training_data", "custom"]
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -75,7 +75,7 @@ class LoRArenaRandomPrompt:
 
         prompt = ""
 
-        if mode == "directory":
+        if mode == "training_data":
             prompt_directory = self._load_config_training_directory()
             print(f"[LoRArena] RandomPrompt: training_data_directory = '{prompt_directory}'")
             prompt = self._from_directory(prompt_directory, gen)
