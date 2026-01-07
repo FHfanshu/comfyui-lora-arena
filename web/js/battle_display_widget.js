@@ -114,18 +114,12 @@ app.registerExtension({
             setTimeout(() => this._fetchBattleData(), 200);
             // Use incremental polling - check status first, then fetch full data only when needed
             this._battlePoll = setInterval(() => this._pollBattleStatus(), 3000);
-            // Queue monitor - periodically check and fill queue if needed
-            this._queueMonitor = setInterval(() => this._checkAndFillQueue(), 5000);
 
             const originalOnRemoved = this.onRemoved;
             this.onRemoved = function() {
                 if (this._battlePoll) {
                     clearInterval(this._battlePoll);
                     this._battlePoll = null;
-                }
-                if (this._queueMonitor) {
-                    clearInterval(this._queueMonitor);
-                    this._queueMonitor = null;
                 }
                 if (originalOnRemoved) {
                     originalOnRemoved.call(this);
@@ -235,6 +229,7 @@ app.registerExtension({
             this._labelB = imageBWrapper.querySelector(".lora-label");
             this._statusText = statusText;
             this._hasBattle = false;
+            this._hasVoted = false;  // Track if user has voted on current battle
             this._currentBattleId = null;
 
             return area;
@@ -426,11 +421,17 @@ app.registerExtension({
 
                 if (data.success) {
                     console.log("[LoRArena] Vote submitted:", winner);
+                    this._hasVoted = true;  // Mark as voted
                     this._showVoteResult(winner);
                     if (this._statusText) {
                         this._statusText.textContent = `${LANG.voted}: ${winner.toUpperCase()}`;
                     }
-                    // Queue management is handled by periodic _checkAndFillQueue
+                    // Fill queue after voting if auto_queue is enabled
+                    if (data.auto_queue_enabled) {
+                        const target = data.auto_queue_target || 10;
+                        const max = data.auto_queue_max || 30;
+                        await this._autoQueuePrompts(target, max);
+                    }
                 } else {
                     if (this._statusText) {
                         this._statusText.textContent = data.error || LANG.voteRejected;
@@ -558,45 +559,6 @@ app.registerExtension({
             }
         };
 
-        // Periodic queue monitor - check and fill queue if needed
-        nodeType.prototype._checkAndFillQueue = async function() {
-            try {
-                // Get config
-                const configResp = await fetch("/lorarena/api/config");
-                const config = await configResp.json();
-
-                if (!config.auto_queue_enabled) return;
-
-                // Get current queue status
-                const response = await fetch("/queue");
-                const queueData = await response.json();
-                const running = queueData.queue_running?.length || 0;
-                const pending = queueData.queue_pending?.length || 0;
-                const currentQueueSize = running + pending;
-
-                const target = config.auto_queue_target || 10;
-                const max = config.auto_queue_max || 30;
-
-                // Only fill if below target
-                if (currentQueueSize >= target) {
-                    return;
-                }
-
-                const needed = Math.min(target - currentQueueSize, max - currentQueueSize);
-                if (needed > 0) {
-                    console.log(`[LoRArena] Queue monitor: ${currentQueueSize}/${target}, adding ${needed}`);
-                    const comfyApp = window.app;
-                    if (comfyApp && comfyApp.queuePrompt) {
-                        for (let i = 0; i < needed; i++) {
-                            await comfyApp.queuePrompt(0, 1);
-                        }
-                    }
-                }
-            } catch (error) {
-                // Silent fail - don't spam console
-            }
-        };
-
         // Reset image styles to default (clear vote result highlights)
         nodeType.prototype._resetImageStyles = function() {
             if (this._imageA && this._imageA.parentNode) {
@@ -638,6 +600,13 @@ app.registerExtension({
             try {
                 const response = await fetch("/lorarena/api/node/battle/status");
                 const status = await response.json();
+
+                // If user hasn't voted on current battle, don't update images
+                // This prevents the battle display from being overwritten by new battles
+                if (this._hasBattle && !this._hasVoted && this._currentBattleId) {
+                    // User is viewing a battle but hasn't voted yet - don't disturb them
+                    return;
+                }
 
                 // Only fetch full data when battle_id changes and there's an active battle
                 if (status.battle_id !== this._currentBattleId && status.has_battle) {
@@ -688,6 +657,7 @@ app.registerExtension({
                     if (shouldResetStyles) {
                         this._resetImageStyles();
                         this._currentBattleId = data.battle_id;
+                        this._hasVoted = false;  // New battle, not voted yet
                     }
                     // Use URL paths for images (efficient - browser caches them)
                     if (this._imageA) this._imageA.src = data.image_url_a || "";
