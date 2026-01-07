@@ -7,11 +7,11 @@ iframe widget for user voting.
 
 from __future__ import annotations
 
-import base64
-import io
+import os
 import uuid
 from typing import Any, Tuple
 
+import folder_paths
 import numpy as np
 from PIL import Image
 
@@ -61,23 +61,23 @@ class LoRArenaBattleDisplay:
         """
         Display battle images and wait for user vote.
 
-        Converts images to base64, stores in battle_state, and waits
-        for user to vote via the iframe widget.
+        Saves images to files and stores URLs in battle_state for
+        efficient network transfer, especially over frp tunnels.
         """
         from ..services import battle_state
-
-        # Convert tensor images to base64
-        image_a_b64 = self._tensor_to_base64(image_a, "image_a")
-        image_b_b64 = self._tensor_to_base64(image_b, "image_b")
 
         # Generate unique battle ID
         battle_id = str(uuid.uuid4())[:8]
 
+        # Save images to files and get URLs
+        image_url_a = self._tensor_to_file(image_a, "image_a", battle_id, "a")
+        image_url_b = self._tensor_to_file(image_b, "image_b", battle_id, "b")
+
         # Set battle state for iframe to display
         battle_state.set_battle(
             battle_id=battle_id,
-            image_a_base64=image_a_b64,
-            image_b_base64=image_b_b64,
+            image_url_a=image_url_a,
+            image_url_b=image_url_b,
             lora_name_a=lora_name_a,
             lora_name_b=lora_name_b,
         )
@@ -93,8 +93,8 @@ class LoRArenaBattleDisplay:
         import time
         return time.time()
 
-    def _tensor_to_base64(self, tensor: Any, name: str) -> str:
-        """Convert ComfyUI image tensor to base64 PNG string."""
+    def _tensor_to_file(self, tensor: Any, name: str, battle_id: str, side: str) -> str:
+        """Convert ComfyUI image tensor to file and return URL path."""
         if tensor is None:
             raise RuntimeError(
                 f"{name} is empty. Connect VAE Decode outputs to image inputs."
@@ -127,10 +127,13 @@ class LoRArenaBattleDisplay:
         # Create PIL image
         img = Image.fromarray(arr)
 
-        # Encode to base64 PNG
-        buffer = io.BytesIO()
-        img.save(buffer, format="PNG")
-        buffer.seek(0)
-        b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        # Save to output/lorarena/ directory
+        output_dir = os.path.join(folder_paths.get_output_directory(), "lorarena")
+        os.makedirs(output_dir, exist_ok=True)
 
-        return f"data:image/png;base64,{b64}"
+        filename = f"battle_{battle_id}_{side}.png"
+        filepath = os.path.join(output_dir, filename)
+        img.save(filepath, format="PNG")
+
+        # Return URL path for API access
+        return f"/lorarena/images/{filename}"

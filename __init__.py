@@ -757,6 +757,22 @@ def _register_api_routes() -> None:
         """Get current battle data for display."""
         return web.json_response(battle_state.get_battle())
 
+    @PromptServer.instance.routes.get("/lorarena/images/{filename}")
+    async def lorarena_serve_image(request):
+        """Serve battle images from output/lorarena/ directory."""
+        import folder_paths
+        filename = request.match_info["filename"]
+
+        # Security check: only allow access to lorarena directory
+        if ".." in filename or "/" in filename or "\\" in filename:
+            return web.Response(status=403, text="Forbidden")
+
+        filepath = Path(folder_paths.get_output_directory()) / "lorarena" / filename
+        if not filepath.exists():
+            return web.Response(status=404, text="Not found")
+
+        return web.FileResponse(filepath)
+
     @PromptServer.instance.routes.get("/lorarena/api/node/battle/status")
     async def lorarena_node_battle_status(request):
         """Get current battle status."""

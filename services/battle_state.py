@@ -6,20 +6,18 @@ Stores battle images and metadata from node execution for display in iframe.
 
 from __future__ import annotations
 
-import base64
-import io
 import logging
 import threading
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 # Global battle state - shared between node execution and iframe
 _current_battle: Dict[str, Any] = {
     "battle_id": None,
-    "image_a": None,  # base64 encoded
-    "image_b": None,  # base64 encoded
+    "image_url_a": None,  # URL path to image file
+    "image_url_b": None,  # URL path to image file
     "lora_name_a": "",
     "lora_name_b": "",
     "timestamp": 0,
@@ -36,8 +34,8 @@ _vote_event = threading.Event()
 
 def set_battle(
     battle_id: str,
-    image_a_base64: str,
-    image_b_base64: str,
+    image_url_a: str,
+    image_url_b: str,
     lora_name_a: str,
     lora_name_b: str,
 ) -> None:
@@ -46,8 +44,8 @@ def set_battle(
     with _lock:
         _current_battle = {
             "battle_id": battle_id,
-            "image_a": image_a_base64,
-            "image_b": image_b_base64,
+            "image_url_a": image_url_a,
+            "image_url_b": image_url_b,
             "lora_name_a": lora_name_a,
             "lora_name_b": lora_name_b,
             "timestamp": time.time(),
@@ -140,8 +138,8 @@ def clear_battle() -> None:
     with _lock:
         _current_battle = {
             "battle_id": None,
-            "image_a": None,
-            "image_b": None,
+            "image_url_a": None,
+            "image_url_b": None,
             "lora_name_a": "",
             "lora_name_b": "",
             "timestamp": 0,

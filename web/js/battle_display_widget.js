@@ -101,7 +101,8 @@ app.registerExtension({
 
             console.log("[LoRArena] Battle Display widget created");
             setTimeout(() => this._fetchBattleData(), 200);
-            this._battlePoll = setInterval(() => this._fetchBattleData(), 1500);
+            // Use incremental polling - check status first, then fetch full data only when needed
+            this._battlePoll = setInterval(() => this._pollBattleStatus(), 3000);
 
             const originalOnRemoved = this.onRemoved;
             this.onRemoved = function() {
@@ -581,12 +582,35 @@ app.registerExtension({
             setTimeout(() => this._fetchBattleData(), 200);
         };
 
+        // Poll battle status (lightweight - only metadata, no images)
+        nodeType.prototype._pollBattleStatus = async function() {
+            try {
+                const response = await fetch("/lorarena/api/node/battle/status");
+                const status = await response.json();
+
+                // Only fetch full data when battle_id changes and there's an active battle
+                if (status.battle_id !== this._currentBattleId && status.has_battle) {
+                    await this._fetchBattleData();
+                } else if (!status.has_battle && this._currentBattleId && !status.voted) {
+                    // Battle ended, clear state
+                    this._hasBattle = false;
+                    this._setVotingEnabled(false);
+                    if (this._statusText) {
+                        this._statusText.textContent = LANG.noBattleYet;
+                    }
+                }
+            } catch (error) {
+                console.error("[LoRArena] Status poll failed:", error);
+            }
+        };
+
         // Fetch battle data from API
         nodeType.prototype._fetchBattleData = async function(force = false) {
             try {
                 const response = await fetch("/lorarena/api/node/battle/current");
                 const data = await response.json();
-                const hasImages = !!(data.image_a && data.image_b);
+                // Use URL-based images instead of base64
+                const hasImages = !!(data.image_url_a && data.image_url_b);
 
                 // Store LoRA names for reveal
                 this._loraNameA = data.lora_name_a;
@@ -614,8 +638,9 @@ app.registerExtension({
                         this._resetImageStyles();
                         this._currentBattleId = data.battle_id;
                     }
-                    if (this._imageA) this._imageA.src = data.image_a || "";
-                    if (this._imageB) this._imageB.src = data.image_b || "";
+                    // Use URL paths for images (efficient - browser caches them)
+                    if (this._imageA) this._imageA.src = data.image_url_a || "";
+                    if (this._imageB) this._imageB.src = data.image_url_b || "";
 
                     // Only mask names if not voted yet
                     if (!data.voted) {
