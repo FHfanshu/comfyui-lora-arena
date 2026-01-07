@@ -160,3 +160,6 @@ data/*.db
 data/*.sqlite
 data/config.json
 node_modules/
+
+# Claude Code
+.claude/
