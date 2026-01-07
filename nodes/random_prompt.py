@@ -23,6 +23,10 @@ DEFAULT_PROMPTS = [
 
 DEFAULT_NEGATIVE = "lowres, bad anatomy, bad hands, text, error, worst quality"
 
+# Track recently used prompts to avoid repetition
+_used_prompts: list[str] = []
+_MAX_HISTORY = 50  # Remember last N prompts
+
 
 class LoRArenaRandomPrompt:
     """
@@ -81,7 +85,9 @@ class LoRArenaRandomPrompt:
         return (prompt, negative_prompt, seed)
 
     def _from_directory(self, directory: str, gen: random.Random) -> str:
-        """Read prompts from txt files in directory (recursive)."""
+        """Read prompts from txt files in directory (recursive), avoiding recently used."""
+        global _used_prompts
+
         if not directory or not os.path.isdir(directory):
             print(f"[LoRArena] RandomPrompt: Invalid prompt directory: '{directory}' (exists={os.path.isdir(directory) if directory else False})")
             return gen.choice(DEFAULT_PROMPTS)
@@ -94,19 +100,37 @@ class LoRArenaRandomPrompt:
             print(f"[LoRArena] No txt files found in {directory}")
             return gen.choice(DEFAULT_PROMPTS)
 
-        # Shuffle and select first file for true randomness
-        gen.shuffle(txt_files)
-        selected_file = txt_files[0]
-        file_path = str(selected_file)
-        print(f"[LoRArena] RandomPrompt: Selected file = '{selected_file.name}'")
+        # Filter out recently used files
+        file_paths_str = [str(f) for f in txt_files]
+        available_files = [f for f in file_paths_str if f not in _used_prompts]
+
+        # If all files have been used, clear history and use all files
+        if not available_files:
+            print(f"[LoRArena] RandomPrompt: All {len(txt_files)} files used, clearing history")
+            _used_prompts.clear()
+            available_files = file_paths_str
+
+        print(f"[LoRArena] RandomPrompt: {len(available_files)} available (excluded {len(file_paths_str) - len(available_files)} recently used)")
+
+        # Shuffle and select first file
+        gen.shuffle(available_files)
+        selected_file = available_files[0]
+
+        # Add to history
+        _used_prompts.append(selected_file)
+        if len(_used_prompts) > _MAX_HISTORY:
+            _used_prompts.pop(0)
+
+        file_name = Path(selected_file).name
+        print(f"[LoRArena] RandomPrompt: Selected file = '{file_name}'")
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(selected_file, "r", encoding="utf-8") as f:
                 content = f.read().strip()
-            print(f"[LoRArena] RandomPrompt: Read {len(content)} chars from '{selected_file.name}'")
+            print(f"[LoRArena] RandomPrompt: Read {len(content)} chars from '{file_name}'")
             return content if content else gen.choice(DEFAULT_PROMPTS)
         except Exception as e:
-            print(f"[LoRArena] Failed to read {file_path}: {e}")
+            print(f"[LoRArena] Failed to read {selected_file}: {e}")
             return gen.choice(DEFAULT_PROMPTS)
 
     def _load_config_training_directory(self) -> str:
