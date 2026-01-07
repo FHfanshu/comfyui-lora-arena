@@ -81,14 +81,14 @@ class LoRArenaRandomPrompt:
         return (prompt, negative_prompt, seed)
 
     def _from_directory(self, directory: str, gen: random.Random) -> str:
-        """Read prompts from txt files in directory."""
+        """Read prompts from txt files in directory (recursive)."""
         if not directory or not os.path.isdir(directory):
             print(f"[LoRArena] RandomPrompt: Invalid prompt directory: '{directory}' (exists={os.path.isdir(directory) if directory else False})")
             return gen.choice(DEFAULT_PROMPTS)
 
-        # Find all txt files and sort for consistent ordering
-        txt_files = sorted([f for f in os.listdir(directory) if f.endswith(".txt")])
-        print(f"[LoRArena] RandomPrompt: Found {len(txt_files)} txt files in '{directory}'")
+        # Recursively find all txt files and sort for consistent ordering
+        txt_files = sorted(Path(directory).rglob("*.txt"))
+        print(f"[LoRArena] RandomPrompt: Found {len(txt_files)} txt files in '{directory}' (recursive)")
 
         if not txt_files:
             print(f"[LoRArena] No txt files found in {directory}")
@@ -97,13 +97,13 @@ class LoRArenaRandomPrompt:
         # Shuffle and select first file for true randomness
         gen.shuffle(txt_files)
         selected_file = txt_files[0]
-        file_path = os.path.join(directory, selected_file)
-        print(f"[LoRArena] RandomPrompt: Selected file = '{selected_file}'")
+        file_path = str(selected_file)
+        print(f"[LoRArena] RandomPrompt: Selected file = '{selected_file.name}'")
 
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read().strip()
-            print(f"[LoRArena] RandomPrompt: Read {len(content)} chars from '{selected_file}'")
+            print(f"[LoRArena] RandomPrompt: Read {len(content)} chars from '{selected_file.name}'")
             return content if content else gen.choice(DEFAULT_PROMPTS)
         except Exception as e:
             print(f"[LoRArena] Failed to read {file_path}: {e}")
