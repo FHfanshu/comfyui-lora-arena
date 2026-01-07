@@ -418,7 +418,7 @@
         "Node name for S&R": "LoRArenaRandomPrompt"
       },
       "widgets_values": [
-        "directory",
+        "training_data",
         0,
         "randomize",
         "",
