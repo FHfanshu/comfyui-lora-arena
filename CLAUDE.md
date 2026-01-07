@@ -115,4 +115,4 @@ pip install -r requirements.txt
 1. 安装扩展到 ComfyUI 的 `custom_nodes/`
 2. 加载 `examples/` 中的示例工作流
 3. 测试节点连接和投票流程
-做完改动后push到main分支 
+做完改动后commit and push到main分支 

@@ -150,43 +150,6 @@
       ]
     },
     {
-      "id": 8,
-      "type": "EmptyLatentImage",
-      "pos": [
-        800,
-        550
-      ],
-      "size": [
-        315,
-        106
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "LATENT",
-          "type": "LATENT",
-          "slot_index": 0,
-          "links": [
-            19,
-            21
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.7.0",
-        "Node name for S&R": "EmptyLatentImage"
-      },
-      "widgets_values": [
-        1024,
-        1024,
-        1
-      ]
-    },
-    {
       "id": 11,
       "type": "VAEDecode",
       "pos": [
@@ -273,436 +236,11 @@
       "widgets_values": []
     },
     {
-      "id": 18,
-      "type": "ShowText|pysssss",
-      "pos": [
-        2957.88035443839,
-        280.3625650727405
-      ],
-      "size": [
-        407.38999618399794,
-        250.6915218505207
-      ],
-      "flags": {},
-      "order": 16,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "text",
-          "type": "STRING",
-          "link": 37
-        }
-      ],
-      "outputs": [
-        {
-          "name": "STRING",
-          "shape": 6,
-          "type": "STRING",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui-custom-scripts",
-        "ver": "1.2.5",
-        "Node name for S&R": "ShowText|pysssss"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 1,
-      "type": "LoRArenaRandomLoraPair",
-      "pos": [
-        -143.00636089039116,
-        -22.507383259057598
-      ],
-      "size": [
-        250,
-        210
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "lora_a",
-          "type": "STRING",
-          "slot_index": 0,
-          "links": [
-            1,
-            26
-          ]
-        },
-        {
-          "name": "lora_b",
-          "type": "STRING",
-          "slot_index": 1,
-          "links": [
-            2,
-            27
-          ]
-        },
-        {
-          "name": "seed",
-          "type": "INT",
-          "slot_index": 2,
-          "links": [
-            3,
-            4
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoRArenaRandomLoraPair"
-      },
-      "widgets_values": [
-        562087595027562,
-        "randomize"
-      ]
-    },
-    {
-      "id": 13,
-      "type": "LoRArenaBattleDisplay",
-      "pos": [
-        1870.8256075165302,
-        67.77544432822121
-      ],
-      "size": [
-        839.9684218956777,
-        756.7991935907359
-      ],
-      "flags": {},
-      "order": 15,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image_a",
-          "type": "IMAGE",
-          "link": 24
-        },
-        {
-          "name": "image_b",
-          "type": "IMAGE",
-          "link": 25
-        },
-        {
-          "name": "trigger",
-          "shape": 7,
-          "type": "*",
-          "link": null
-        },
-        {
-          "name": "lora_name_a",
-          "type": "STRING",
-          "widget": {
-            "name": "lora_name_a"
-          },
-          "link": 26
-        },
-        {
-          "name": "lora_name_b",
-          "type": "STRING",
-          "widget": {
-            "name": "lora_name_b"
-          },
-          "link": 27
-        }
-      ],
-      "outputs": [
-        {
-          "name": "winner",
-          "type": "STRING",
-          "slot_index": 0,
-          "links": [
-            37
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoRArenaBattleDisplay"
-      },
-      "widgets_values": [
-        "LoRA A",
-        "LoRA B",
-        ""
-      ]
-    },
-    {
-      "id": 2,
-      "type": "CheckpointLoaderSimple",
-      "pos": [
-        -159.4733285863282,
-        327.41623664371934
-      ],
-      "size": [
-        315,
-        98
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "slot_index": 0,
-          "links": [
-            5,
-            6
-          ]
-        },
-        {
-          "name": "CLIP",
-          "type": "CLIP",
-          "slot_index": 1,
-          "links": [
-            7,
-            8,
-            20
-          ]
-        },
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "slot_index": 2,
-          "links": [
-            9,
-            10
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.7.0",
-        "Node name for S&R": "CheckpointLoaderSimple"
-      },
-      "widgets_values": [
-        "chenkinNoobXLCKXL_v02.safetensors"
-      ]
-    },
-    {
-      "id": 3,
-      "type": "LoRArenaLoraLoader",
-      "pos": [
-        268.5406510623742,
-        65.29056586846076
-      ],
-      "size": [
-        315,
-        126
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 5
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 7
-        },
-        {
-          "name": "lora_name",
-          "type": "STRING",
-          "widget": {
-            "name": "lora_name"
-          },
-          "link": 1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "slot_index": 0,
-          "links": [
-            11
-          ]
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "slot_index": 1,
-          "links": [
-            13
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoRArenaLoraLoader"
-      },
-      "widgets_values": [
-        "",
-        1,
-        1
-      ]
-    },
-    {
-      "id": 4,
-      "type": "LoRArenaLoraLoader",
-      "pos": [
-        255.2576511842646,
-        235.30041935974984
-      ],
-      "size": [
-        315,
-        126
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 6
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 8
-        },
-        {
-          "name": "lora_name",
-          "type": "STRING",
-          "widget": {
-            "name": "lora_name"
-          },
-          "link": 2
-        }
-      ],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "slot_index": 0,
-          "links": [
-            12
-          ]
-        },
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "slot_index": 1,
-          "links": [
-            14
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoRArenaLoraLoader"
-      },
-      "widgets_values": [
-        "",
-        1,
-        1
-      ]
-    },
-    {
-      "id": 15,
-      "type": "LoRArenaLeaderboardDisplay",
-      "pos": [
-        -895.6032960784601,
-        -24.343794152370272
-      ],
-      "size": [
-        718.1875829733306,
-        770.8937511531983
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "trigger",
-          "shape": 7,
-          "type": "*",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "top_lora",
-          "type": "STRING",
-          "slot_index": 0,
-          "links": null
-        },
-        {
-          "name": "top_lora_elo",
-          "type": "STRING",
-          "slot_index": 1,
-          "links": null
-        },
-        {
-          "name": "total_count",
-          "type": "INT",
-          "slot_index": 2,
-          "links": null
-        },
-        {
-          "name": "leaderboard_json",
-          "type": "STRING",
-          "slot_index": 3,
-          "links": null
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoRArenaLeaderboardDisplay"
-      },
-      "widgets_values": [
-        20,
-        ""
-      ]
-    },
-    {
-      "id": 17,
-      "type": "ShowText|pysssss",
-      "pos": [
-        388.3888868435725,
-        632.3639633960802
-      ],
-      "size": [
-        387.7906502650603,
-        273.0906553152423
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "text",
-          "type": "STRING",
-          "link": 36
-        }
-      ],
-      "outputs": [
-        {
-          "name": "STRING",
-          "shape": 6,
-          "type": "STRING",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui-custom-scripts",
-        "ver": "1.2.5",
-        "Node name for S&R": "ShowText|pysssss"
-      },
-      "widgets_values": [
-        "748cm,  1girl,  solo,  outdoors,  white hair,  hood,  building,  see-through,  hood down,  sky,  looking at viewer,  standing,  short hair,  power lines,  long sleeves,  water,  from side,  jacket,  blush,  cowboy shot,  medium hair,  day,  profile,  utility pole,  see-through jacket,  blue sky,  pink eyes,  house,  hooded jacket,  tree,  hoodie,  closed mouth"
-      ]
-    },
-    {
       "id": 9,
       "type": "KSampler",
       "pos": [
-        1186.99971646365,
-        -101.71964194158606
+        1187,
+        -102
       ],
       "size": [
         300,
@@ -770,8 +308,8 @@
       "id": 10,
       "type": "KSampler",
       "pos": [
-        1181.9090188772345,
-        427.998924113231
+        1182,
+        428
       ],
       "size": [
         300,
@@ -839,15 +377,15 @@
       "id": 14,
       "type": "LoRArenaRandomPrompt",
       "pos": [
-        -94.30499935062171,
-        503.5664214540062
+        -94,
+        504
       ],
       "size": [
         300,
         278
       ],
       "flags": {},
-      "order": 4,
+      "order": 0,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -885,6 +423,438 @@
         "randomize",
         "",
         "lowres, bad anatomy, bad hands, text, error, worst quality"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "LoRArenaLoraLoader",
+      "pos": [
+        356,
+        280
+      ],
+      "size": [
+        315,
+        126
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 6
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 8
+        },
+        {
+          "name": "lora_name",
+          "type": "STRING",
+          "widget": {
+            "name": "lora_name"
+          },
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            12
+          ]
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "slot_index": 1,
+          "links": [
+            14
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoRArenaLoraLoader"
+      },
+      "widgets_values": [
+        "",
+        1,
+        1
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoRArenaLoraLoader",
+      "pos": [
+        353,
+        97
+      ],
+      "size": [
+        315,
+        126
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 5
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 7
+        },
+        {
+          "name": "lora_name",
+          "type": "STRING",
+          "widget": {
+            "name": "lora_name"
+          },
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            11
+          ]
+        },
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "slot_index": 1,
+          "links": [
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoRArenaLoraLoader"
+      },
+      "widgets_values": [
+        "",
+        1,
+        1
+      ]
+    },
+    {
+      "id": 17,
+      "type": "ShowText|pysssss",
+      "pos": [
+        319,
+        740
+      ],
+      "size": [
+        388,
+        273
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 36
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "1.2.5",
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 8,
+      "type": "EmptyLatentImage",
+      "pos": [
+        800,
+        550
+      ],
+      "size": [
+        315,
+        106
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": [
+            19,
+            21
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.7.0",
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        832,
+        1216,
+        1
+      ]
+    },
+    {
+      "id": 1,
+      "type": "LoRArenaMatchmaker",
+      "pos": [
+        -344,
+        -29
+      ],
+      "size": [
+        250,
+        210
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "lora_a",
+          "type": "STRING",
+          "slot_index": 0,
+          "links": [
+            1,
+            26
+          ]
+        },
+        {
+          "name": "lora_b",
+          "type": "STRING",
+          "slot_index": 1,
+          "links": [
+            2,
+            27
+          ]
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "slot_index": 2,
+          "links": [
+            3,
+            4
+          ]
+        },
+        {
+          "name": "battle_info",
+          "type": "LORARENA_BATTLE",
+          "slot_index": 3,
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoRArenaMatchmaker"
+      },
+      "widgets_values": [
+        "directory",
+        "random",
+        0,
+        "randomize"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CheckpointLoaderSimple",
+      "pos": [
+        -332,
+        285
+      ],
+      "size": [
+        315,
+        98
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            5,
+            6
+          ]
+        },
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "slot_index": 1,
+          "links": [
+            7,
+            8,
+            20
+          ]
+        },
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "slot_index": 2,
+          "links": [
+            9,
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.7.0",
+        "Node name for S&R": "CheckpointLoaderSimple"
+      },
+      "widgets_values": [
+        "chenkinNoobXLCKXL_v02.safetensors"
+      ]
+    },
+    {
+      "id": 15,
+      "type": "LoRArenaLeaderboardDisplay",
+      "pos": [
+        2735,
+        163
+      ],
+      "size": [
+        718,
+        771
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "trigger",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "top_lora",
+          "type": "STRING",
+          "slot_index": 0,
+          "links": null
+        },
+        {
+          "name": "top_lora_elo",
+          "type": "STRING",
+          "slot_index": 1,
+          "links": null
+        },
+        {
+          "name": "total_count",
+          "type": "INT",
+          "slot_index": 2,
+          "links": null
+        },
+        {
+          "name": "leaderboard_json",
+          "type": "STRING",
+          "slot_index": 3,
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoRArenaLeaderboardDisplay"
+      },
+      "widgets_values": [
+        20,
+        0
+      ]
+    },
+    {
+      "id": 13,
+      "type": "LoRArenaBattleDisplay",
+      "pos": [
+        1807,
+        164
+      ],
+      "size": [
+        858,
+        827
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_a",
+          "type": "IMAGE",
+          "link": 24
+        },
+        {
+          "name": "image_b",
+          "type": "IMAGE",
+          "link": 25
+        },
+        {
+          "name": "trigger",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "name": "lora_name_a",
+          "type": "STRING",
+          "widget": {
+            "name": "lora_name_a"
+          },
+          "link": 26
+        },
+        {
+          "name": "lora_name_b",
+          "type": "STRING",
+          "widget": {
+            "name": "lora_name_b"
+          },
+          "link": 27
+        }
+      ],
+      "outputs": [
+        {
+          "name": "winner",
+          "type": "STRING",
+          "slot_index": 0,
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoRArenaBattleDisplay"
+      },
+      "widgets_values": [
+        "LoRA A",
+        "LoRA B",
+        ""
       ]
     }
   ],
@@ -1136,32 +1106,20 @@
       17,
       0,
       "STRING"
-    ],
-    [
-      37,
-      13,
-      0,
-      18,
-      0,
-      "STRING"
     ]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.9524168879961916,
+      "scale": 0.72,
       "offset": [
-        206.91593463291386,
-        -188.47814847329138
+        494,
+        142
       ]
     },
     "frontendVersion": "1.35.9",
-    "workflowRendererVersion": "LG",
-    "VHS_latentpreview": false,
-    "VHS_latentpreviewrate": 0,
-    "VHS_MetadataImage": true,
-    "VHS_KeepIntermediate": true
+    "workflowRendererVersion": "LG"
   },
   "version": 0.4
 }
