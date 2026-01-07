@@ -419,6 +419,24 @@ def _register_api_routes() -> None:
             {"success": True, "message": f"{status.capitalize()} {count} checkpoints"}
         )
 
+    @PromptServer.instance.routes.post("/lorarena/api/checkpoints/reset-all")
+    async def lorarena_checkpoints_reset_all(request):
+        """Reset all checkpoints to initial state (ELO=1500, stats=0)."""
+        if _is_guest_mode():
+            return web.json_response(
+                {"error": "Guest mode: reset not allowed"},
+                status=403,
+            )
+        # Get lora_directory from config for filtering
+        lora_directory = config_state.get("lora_directory", "")
+        with db_manager.session_scope() as db:
+            count = checkpoint_service.reset_all_checkpoints(db, lora_directory if lora_directory else None)
+        return web.json_response({
+            "success": True,
+            "message": f"Reset {count} checkpoints to initial state",
+            "count": count,
+        })
+
     @PromptServer.instance.routes.post("/lorarena/api/battles/new")
     async def lorarena_battles_new(request):
         # Guest mode: battle creation not allowed

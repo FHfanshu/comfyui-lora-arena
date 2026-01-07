@@ -8,6 +8,11 @@ const isZh = (navigator.language || "en").toLowerCase().startsWith("zh");
 const LANG = {
     title: isZh ? "LoRA 排行榜" : "LoRA Leaderboard",
     refresh: isZh ? "刷新" : "Refresh",
+    reset: isZh ? "重置" : "Reset",
+    resetConfirm: isZh ? "确定要重置所有 LoRA 的统计数据吗？\n\n所有 ELO 评分将恢复为 1500，对战记录将清零。" : "Reset all LoRA stats?\n\nAll ELO ratings will be reset to 1500 and battle records cleared.",
+    resetting: isZh ? "重置中..." : "Resetting...",
+    resetSuccess: isZh ? "重置成功" : "Reset complete",
+    resetFailed: isZh ? "重置失败" : "Reset failed",
     loading: isZh ? "加载中..." : "Loading...",
     noData: isZh ? "暂无排行。快去对战吧！" : "No LoRAs ranked yet. Start voting!",
     battles: isZh ? "场次" : "Battles",
@@ -111,6 +116,13 @@ app.registerExtension({
             title.textContent = LANG.title;
             header.appendChild(title);
 
+            // Button container for refresh and reset
+            const btnContainer = document.createElement("div");
+            btnContainer.style.cssText = `
+                display: flex;
+                gap: 8px;
+            `;
+
             const refreshBtn = document.createElement("button");
             refreshBtn.style.cssText = `
                 padding: 6px 12px;
@@ -126,7 +138,26 @@ app.registerExtension({
             refreshBtn.onpointerdown = (e) => e.stopPropagation();
             refreshBtn.onmousedown = (e) => e.stopPropagation();
             refreshBtn.onclick = () => this._fetchLeaderboard(true);
-            header.appendChild(refreshBtn);
+            btnContainer.appendChild(refreshBtn);
+
+            const resetBtn = document.createElement("button");
+            resetBtn.style.cssText = `
+                padding: 6px 12px;
+                border: none;
+                border-radius: 4px;
+                background: #ef4444;
+                color: white;
+                font-size: 12px;
+                cursor: pointer;
+                pointer-events: auto;
+            `;
+            resetBtn.textContent = LANG.reset;
+            resetBtn.onpointerdown = (e) => e.stopPropagation();
+            resetBtn.onmousedown = (e) => e.stopPropagation();
+            resetBtn.onclick = () => this._resetAllStats();
+            btnContainer.appendChild(resetBtn);
+
+            header.appendChild(btnContainer);
 
             content.appendChild(header);
 
@@ -147,7 +178,51 @@ app.registerExtension({
             this._tableContainer = tableContainer;
             this._statusLabel = status;
             this._refreshBtn = refreshBtn;
+            this._resetBtn = resetBtn;
             return content;
+        };
+
+        // Reset all LoRA stats
+        nodeType.prototype._resetAllStats = async function() {
+            if (!confirm(LANG.resetConfirm)) {
+                return;
+            }
+
+            if (this._resetBtn) {
+                this._resetBtn.disabled = true;
+                this._resetBtn.textContent = LANG.resetting;
+            }
+            if (this._statusLabel) {
+                this._statusLabel.textContent = LANG.resetting;
+            }
+
+            try {
+                const response = await fetch("/lorarena/api/checkpoints/reset-all", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    if (this._statusLabel) {
+                        this._statusLabel.textContent = LANG.resetSuccess;
+                    }
+                    // Refresh leaderboard after reset
+                    await this._fetchLeaderboard(true);
+                } else {
+                    throw new Error(data.error || "Unknown error");
+                }
+            } catch (error) {
+                console.error("[LoRArena] Failed to reset stats:", error);
+                if (this._statusLabel) {
+                    this._statusLabel.textContent = LANG.resetFailed;
+                }
+            } finally {
+                if (this._resetBtn) {
+                    this._resetBtn.disabled = false;
+                    this._resetBtn.textContent = LANG.reset;
+                }
+            }
         };
 
         // Fetch leaderboard data

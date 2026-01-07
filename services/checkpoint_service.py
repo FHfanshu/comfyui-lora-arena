@@ -302,5 +302,49 @@ class CheckpointService:
         db.commit()
         return result.rowcount
 
+    def reset_all_checkpoints(self, db: Session, lora_directory: Optional[str] = None) -> int:
+        """Reset all checkpoints to initial state (ELO=1500, stats=0).
+
+        Args:
+            db: Database session
+            lora_directory: Optional directory filter. If provided, only reset
+                checkpoints matching this directory.
+
+        Returns:
+            Number of checkpoints reset
+        """
+        if lora_directory:
+            # Get all checkpoints and filter by directory
+            all_checkpoints = db.execute(select(Checkpoint)).scalars().all()
+            matching_ids = [
+                cp.id for cp in all_checkpoints
+                if self._matches_directory(cp.filename, lora_directory)
+            ]
+            if not matching_ids:
+                return 0
+            stmt = (
+                update(Checkpoint)
+                .where(Checkpoint.id.in_(matching_ids))
+                .values(
+                    elo_rating=1500.0,
+                    total_battles=0,
+                    wins=0,
+                    losses=0,
+                    ties=0,
+                )
+            )
+        else:
+            stmt = update(Checkpoint).values(
+                elo_rating=1500.0,
+                total_battles=0,
+                wins=0,
+                losses=0,
+                ties=0,
+            )
+
+        result = db.execute(stmt)
+        db.commit()
+        return result.rowcount
+
 
 checkpoint_service = CheckpointService()
