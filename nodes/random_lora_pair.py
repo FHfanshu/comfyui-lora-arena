@@ -53,11 +53,17 @@ class LoRArenaRandomLoraPair:
 
         try:
             import folder_paths
-            lora_base = folder_paths.get_folder_paths("loras")[0]
-            print(f"[LoRArena] RandomLoraPair: ComfyUI loras base = '{lora_base}'")
+            all_lora_paths = folder_paths.get_folder_paths("loras")
+            print(f"[LoRArena] RandomLoraPair: All ComfyUI lora paths = {all_lora_paths}")
         except Exception as e:
             print(f"[LoRArena] Cannot get ComfyUI loras folder: {e}")
             return "", ""
+
+        if not all_lora_paths:
+            print("[LoRArena] No lora paths registered in ComfyUI")
+            return "", ""
+
+        lora_base = all_lora_paths[0]  # Default base for relative paths
 
         if os.path.isabs(lora_subdir):
             full_dir = lora_subdir
@@ -95,16 +101,25 @@ class LoRArenaRandomLoraPair:
         # Return relative path for LoRA Loader (e.g., "748\\xxx.safetensors")
         relative_dir = lora_subdir
         if os.path.isabs(lora_subdir):
-            try:
-                relative_dir = os.path.relpath(full_dir, lora_base)
-                print(f"[LoRArena] RandomLoraPair: Computed relative_dir = '{relative_dir}'")
-                if relative_dir.startswith(".."):
-                    print(f"[LoRArena] Directory '{full_dir}' is NOT under ComfyUI loras path '{lora_base}'")
-                    print(f"[LoRArena] Please ensure your LoRA directory is under ComfyUI's models/loras folder")
-                    return "", ""
-            except Exception as e:
-                print(f"[LoRArena] Failed to compute relative path: {e}")
-                relative_dir = ""
+            # Try to find which lora base path contains this directory
+            matched_base = None
+            for base_path in all_lora_paths:
+                try:
+                    rel = os.path.relpath(full_dir, base_path)
+                    if not rel.startswith(".."):
+                        matched_base = base_path
+                        relative_dir = rel
+                        print(f"[LoRArena] RandomLoraPair: Matched base = '{base_path}', relative_dir = '{relative_dir}'")
+                        break
+                except Exception:
+                    continue
+
+            if matched_base is None:
+                print(f"[LoRArena] Directory '{full_dir}' is NOT under any registered ComfyUI loras paths:")
+                for p in all_lora_paths:
+                    print(f"[LoRArena]   - {p}")
+                print(f"[LoRArena] Please ensure your LoRA directory is under one of ComfyUI's loras folders")
+                return "", ""
 
         if relative_dir:
             relative_dir = relative_dir.replace("/", "\\").rstrip("\\")
