@@ -413,6 +413,39 @@ def _register_api_routes() -> None:
             "count": count,
         })
 
+    @PromptServer.instance.routes.post("/lorarena/api/checkpoints/eliminate")
+    async def lorarena_checkpoints_eliminate(request):
+        """Eliminate checkpoints based on Battle Royale rules and move files to parent directory."""
+        if _is_guest_mode():
+            return web.json_response(
+                {"error": "Guest mode: elimination not allowed"},
+                status=403,
+            )
+        lora_directory = config_state.get("lora_directory", "")
+        with db_manager.session_scope() as db:
+            result = checkpoint_service.eliminate_checkpoints(
+                db, lora_directory if lora_directory else None
+            )
+        return web.json_response({
+            "success": result.eliminated > 0 or not result.errors,
+            "eliminated": result.eliminated,
+            "moved": result.moved,
+            "errors": result.errors,
+        })
+
+    @PromptServer.instance.routes.post("/lorarena/api/checkpoints/refresh")
+    async def lorarena_checkpoints_refresh(request):
+        """Refresh checkpoint status by checking if files still exist."""
+        lora_directory = config_state.get("lora_directory", "")
+        with db_manager.session_scope() as db:
+            result = checkpoint_service.refresh_checkpoints(
+                db, lora_directory if lora_directory else None
+            )
+        return web.json_response({
+            "success": True,
+            **result,
+        })
+
     @PromptServer.instance.routes.post("/lorarena/api/battles/new")
     async def lorarena_battles_new(request):
         # Guest mode: battle creation not allowed

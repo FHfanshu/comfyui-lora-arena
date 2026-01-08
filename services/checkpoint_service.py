@@ -5,7 +5,9 @@ Handles LoRA checkpoint management for ComfyUI nodes.
 
 from __future__ import annotations
 
+import json
 import logging
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional
@@ -24,6 +26,31 @@ class ScanResult:
     imported: int
     skipped: int
     errors: List[str]
+
+
+@dataclass
+class EliminationResult:
+    eliminated: int
+    moved: int
+    errors: List[str]
+
+
+def _load_config() -> dict:
+    """Load config from data/config.json."""
+    config_path = Path(__file__).resolve().parent.parent / "data" / "config.json"
+    default = {
+        "battle_royale_enabled": False,
+        "battle_royale_threshold": 10,
+        "battle_royale_win_rate": 0.3,
+        "lora_directory": "",
+    }
+    if config_path.exists():
+        try:
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+            default.update(data)
+        except Exception:
+            pass
+    return default
 
 
 class CheckpointService:
@@ -345,6 +372,167 @@ class CheckpointService:
         result = db.execute(stmt)
         db.commit()
         return result.rowcount
+
+    def eliminate_checkpoints(
+        self,
+        db: Session,
+        lora_directory: Optional[str] = None,
+    ) -> EliminationResult:
+        """Eliminate checkpoints that meet Battle Royale criteria.
+
+        Moves eliminated LoRA files to parent directory and deactivates them.
+
+        Args:
+            db: Database session
+            lora_directory: Optional directory filter
+
+        Returns:
+            EliminationResult with counts and any errors
+        """
+        config = _load_config()
+        if not config.get("battle_royale_enabled", False):
+            return EliminationResult(eliminated=0, moved=0, errors=["Battle Royale not enabled"])
+
+        threshold = config.get("battle_royale_threshold", 10)
+        min_win_rate = config.get("battle_royale_win_rate", 0.3)
+
+        # Get all active checkpoints
+        query = select(Checkpoint).where(Checkpoint.is_active == True)
+        all_checkpoints = list(db.execute(query).scalars().all())
+
+        # Filter by directory if specified
+        if lora_directory:
+            all_checkpoints = [
+                cp for cp in all_checkpoints
+                if self._matches_directory(cp.filename, lora_directory)
+            ]
+
+        if len(all_checkpoints) <= 2:
+            return EliminationResult(
+                eliminated=0, moved=0,
+                errors=["Need more than 2 checkpoints for elimination"]
+            )
+
+        # Check if all checkpoints have reached threshold
+        all_reached = all(c.total_battles >= threshold for c in all_checkpoints)
+        if not all_reached:
+            return EliminationResult(
+                eliminated=0, moved=0,
+                errors=["Not all checkpoints have reached battle threshold"]
+            )
+
+        # Find checkpoints to eliminate
+        to_eliminate = [
+            c for c in all_checkpoints
+            if c.win_rate < min_win_rate
+        ]
+
+        # Ensure we keep at least 2
+        max_to_eliminate = len(all_checkpoints) - 2
+        to_eliminate = to_eliminate[:max_to_eliminate]
+
+        if not to_eliminate:
+            return EliminationResult(eliminated=0, moved=0, errors=[])
+
+        eliminated = 0
+        moved = 0
+        errors: List[str] = []
+
+        for checkpoint in to_eliminate:
+            try:
+                # Move the file to parent directory
+                if checkpoint.file_path:
+                    file_path = Path(checkpoint.file_path)
+                    if file_path.exists():
+                        parent_dir = file_path.parent.parent
+                        if parent_dir.exists():
+                            new_path = parent_dir / file_path.name
+                            # Handle name collision
+                            if new_path.exists():
+                                stem = file_path.stem
+                                suffix = file_path.suffix
+                                counter = 1
+                                while new_path.exists():
+                                    new_path = parent_dir / f"{stem}_{counter}{suffix}"
+                                    counter += 1
+                            shutil.move(str(file_path), str(new_path))
+                            moved += 1
+                            logger.info(f"Moved eliminated LoRA: {file_path} -> {new_path}")
+
+                # Deactivate checkpoint
+                checkpoint.is_active = False
+                eliminated += 1
+
+            except Exception as exc:
+                errors.append(f"Error eliminating {checkpoint.name}: {exc}")
+                logger.error(f"Error eliminating {checkpoint.name}: {exc}")
+
+        db.commit()
+        return EliminationResult(eliminated=eliminated, moved=moved, errors=errors)
+
+    def refresh_checkpoints(
+        self,
+        db: Session,
+        lora_directory: Optional[str] = None,
+    ) -> dict:
+        """Refresh checkpoint data by checking if files still exist.
+
+        Deactivates checkpoints whose files no longer exist at the recorded path.
+
+        Args:
+            db: Database session
+            lora_directory: Optional directory filter
+
+        Returns:
+            Dict with updated, deactivated, and reactivated counts
+        """
+        query = select(Checkpoint)
+        all_checkpoints = list(db.execute(query).scalars().all())
+
+        if lora_directory:
+            all_checkpoints = [
+                cp for cp in all_checkpoints
+                if self._matches_directory(cp.filename, lora_directory)
+            ]
+
+        updated = 0
+        deactivated = 0
+        reactivated = 0
+
+        # Get current ComfyUI lora list for validation
+        available_loras = set(self._get_comfyui_loras())
+
+        for checkpoint in all_checkpoints:
+            file_exists = False
+
+            # Check by filename in ComfyUI's lora list
+            if checkpoint.filename in available_loras:
+                file_exists = True
+            # Also check by absolute path
+            elif checkpoint.file_path:
+                file_path = Path(checkpoint.file_path)
+                if file_path.exists():
+                    file_exists = True
+
+            if file_exists and not checkpoint.is_active:
+                # File exists but checkpoint is deactivated - check if user intentionally disabled
+                # Don't auto-reactivate - user may have disabled it manually
+                pass
+            elif not file_exists and checkpoint.is_active:
+                # File doesn't exist but checkpoint is active - deactivate
+                checkpoint.is_active = False
+                deactivated += 1
+                updated += 1
+                logger.info(f"Deactivated missing checkpoint: {checkpoint.name}")
+
+        if updated > 0:
+            db.commit()
+
+        return {
+            "updated": updated,
+            "deactivated": deactivated,
+            "reactivated": reactivated,
+        }
 
 
 checkpoint_service = CheckpointService()

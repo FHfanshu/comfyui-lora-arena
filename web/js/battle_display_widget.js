@@ -240,6 +240,8 @@ app.registerExtension({
             // Store references
             this._imageA = imageAWrapper.querySelector("img");
             this._imageB = imageBWrapper.querySelector("img");
+            this._imageAWrapper = imageAWrapper;
+            this._imageBWrapper = imageBWrapper;
             this._labelA = imageAWrapper.querySelector(".lora-label");
             this._labelB = imageBWrapper.querySelector(".lora-label");
             this._statusText = statusText;
@@ -251,8 +253,9 @@ app.registerExtension({
             return area;
         };
 
-        // Create image wrapper
+        // Create image wrapper - now clickable as vote button
         nodeType.prototype._createImageWrapper = function(label) {
+            const self = this;
             const wrapper = document.createElement("div");
             wrapper.style.cssText = `
                 flex: 1;
@@ -276,7 +279,38 @@ app.registerExtension({
                 border: 2px solid #333;
                 overflow: hidden;
                 min-height: 0;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                position: relative;
             `;
+
+            // Hover overlay for vote indication
+            const hoverOverlay = document.createElement("div");
+            hoverOverlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: ${label === "A" ? "rgba(59, 130, 246, 0.3)" : "rgba(34, 197, 94, 0.3)"};
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.2s ease;
+                pointer-events: none;
+                z-index: 10;
+            `;
+            const hoverText = document.createElement("span");
+            hoverText.style.cssText = `
+                color: white;
+                font-size: 24px;
+                font-weight: bold;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            `;
+            hoverText.textContent = label === "A" ? LANG.aBetter : LANG.bBetter;
+            hoverOverlay.appendChild(hoverText);
+            imgContainer.appendChild(hoverOverlay);
 
             const img = document.createElement("img");
             img.style.cssText = `
@@ -289,6 +323,38 @@ app.registerExtension({
             `;
             img.src = "";
             imgContainer.appendChild(img);
+
+            // Hover effects for image container
+            imgContainer.addEventListener("mouseenter", () => {
+                if (self._hasBattle && !self._hasVoted) {
+                    imgContainer.style.border = label === "A"
+                        ? "2px solid rgba(59, 130, 246, 0.8)"
+                        : "2px solid rgba(34, 197, 94, 0.8)";
+                    imgContainer.style.boxShadow = label === "A"
+                        ? "0 0 20px rgba(59, 130, 246, 0.4)"
+                        : "0 0 20px rgba(34, 197, 94, 0.4)";
+                    hoverOverlay.style.opacity = "1";
+                }
+            });
+            imgContainer.addEventListener("mouseleave", () => {
+                if (!self._hasVoted) {
+                    imgContainer.style.border = "2px solid #333";
+                    imgContainer.style.boxShadow = "";
+                    hoverOverlay.style.opacity = "0";
+                }
+            });
+
+            // Click to vote
+            imgContainer.addEventListener("click", (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (self._hasBattle && !self._hasVoted) {
+                    self._submitVote(label.toLowerCase());
+                }
+            });
+            imgContainer.addEventListener("mousedown", (e) => e.stopPropagation());
+            imgContainer.addEventListener("pointerdown", (e) => e.stopPropagation());
+
             wrapper.appendChild(imgContainer);
 
             const labelDiv = document.createElement("div");
@@ -309,11 +375,12 @@ app.registerExtension({
 
             // Store ref to container for border styling
             wrapper._imgContainer = imgContainer;
+            wrapper._hoverOverlay = hoverOverlay;
 
             return wrapper;
         };
 
-        // Create voting buttons
+        // Create voting buttons - only Tie button (A/B votes are done by clicking images)
         nodeType.prototype._createVotingButtons = function() {
             const self = this;
             const container = document.createElement("div");
@@ -325,11 +392,9 @@ app.registerExtension({
                 flex-shrink: 0;
             `;
 
+            // Only Tie button now - A and B are voted by clicking images
             const buttons = [
-                { label: LANG.aBetter, value: "a", color: "rgba(59, 130, 246, 0.2)", borderColor: "rgba(59, 130, 246, 0.5)", hoverColor: "rgba(59, 130, 246, 0.4)" },
                 { label: LANG.tie, value: "tie", color: "rgba(107, 114, 128, 0.2)", borderColor: "rgba(107, 114, 128, 0.5)", hoverColor: "rgba(107, 114, 128, 0.4)" },
-                { label: LANG.bBetter, value: "b", color: "rgba(34, 197, 94, 0.2)", borderColor: "rgba(34, 197, 94, 0.5)", hoverColor: "rgba(34, 197, 94, 0.4)" },
-                { label: LANG.skip, value: "skip", color: "rgba(239, 68, 68, 0.2)", borderColor: "rgba(239, 68, 68, 0.5)", hoverColor: "rgba(239, 68, 68, 0.4)" },
             ];
 
             this._voteButtons = [];
@@ -595,6 +660,7 @@ app.registerExtension({
                 container.style.border = "2px solid #333";
                 container.style.boxShadow = "";
                 container.style.opacity = "1";
+                container.style.cursor = "pointer";
             }
             if (this._imageB && this._imageB.parentNode) {
                 const container = this._imageB.parentNode;
@@ -602,6 +668,14 @@ app.registerExtension({
                 container.style.border = "2px solid #333";
                 container.style.boxShadow = "";
                 container.style.opacity = "1";
+                container.style.cursor = "pointer";
+            }
+            // Reset hover overlays
+            if (this._imageAWrapper && this._imageAWrapper._hoverOverlay) {
+                this._imageAWrapper._hoverOverlay.style.opacity = "0";
+            }
+            if (this._imageBWrapper && this._imageBWrapper._hoverOverlay) {
+                this._imageBWrapper._hoverOverlay.style.opacity = "0";
             }
             if (this._labelA) {
                 this._labelA.style.color = "#888";

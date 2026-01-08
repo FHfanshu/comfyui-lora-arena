@@ -16,16 +16,9 @@ const STRINGS = (() => {
     loadFailed: isZh ? "加载失败" : "Load failed",
     saved: isZh ? "已保存" : "Saved",
     saveFailed: isZh ? "保存失败" : "Save failed",
-    comfyuiUrl: isZh ? "ComfyUI 地址" : "ComfyUI URL",
     loraDir: isZh ? "LoRA 目录" : "LoRA Directory",
     trainingDir: isZh ? "训练集/提示词目录" : "Training/Prompt Dir",
     basic: isZh ? "基础配置" : "Basics",
-    autoQueue: isZh ? "预生成" : "Pre-generate",
-    autoQueueCount: isZh ? "预生成数量" : "Queue Count",
-    autoQueueTarget: isZh ? "目标队列深度" : "Target Queue",
-    autoQueueMax: isZh ? "最大队列深度" : "Max Queue",
-    autoQueueTargetHint: isZh ? "尝试保持的队列深度 (默认30)" : "Target queue depth (default 30)",
-    autoQueueMaxHint: isZh ? "队列最大深度 (默认100)" : "Maximum queue depth (default 100)",
     promptPrefix: isZh ? "提示词前缀" : "Prompt Prefix",
     promptPrefixHint: isZh ? "添加到随机提示词前面" : "Prepended to random prompts",
     battleRoyale: isZh ? "大逃杀模式" : "Battle Royale",
@@ -43,6 +36,16 @@ const STRINGS = (() => {
     scanSuccess: isZh ? "导入成功" : "Import success",
     scanFailed: isZh ? "扫描失败" : "Scan failed",
     scanHint: isZh ? "扫描并导入LoRA到数据库" : "Scan and import LoRAs to database",
+    eliminate: isZh ? "执行淘汰" : "Eliminate",
+    eliminating: isZh ? "淘汰中..." : "Eliminating...",
+    eliminateSuccess: isZh ? "淘汰完成" : "Elimination done",
+    eliminateFailed: isZh ? "淘汰失败" : "Elimination failed",
+    eliminateHint: isZh ? "移动低胜率LoRA到上级目录" : "Move low win-rate LoRAs to parent dir",
+    refresh: isZh ? "刷新状态" : "Refresh",
+    refreshing: isZh ? "刷新中..." : "Refreshing...",
+    refreshSuccess: isZh ? "刷新完成" : "Refresh done",
+    refreshFailed: isZh ? "刷新失败" : "Refresh failed",
+    refreshHint: isZh ? "检查LoRA文件是否存在" : "Check if LoRA files exist",
   };
 })();
 
@@ -208,11 +211,39 @@ function ensureStyles() {
       font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
-      margin-right: 8px;
     }
     .lorarena-scan-btn:disabled {
       opacity: 0.6;
       cursor: default;
+    }
+    .lorarena-action-btn {
+      border: none;
+      background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .lorarena-action-btn:hover {
+      background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+    }
+    .lorarena-action-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .lorarena-action-btn.danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    .lorarena-action-btn.danger:hover {
+      background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+    }
+    .lorarena-actions-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
     }
     .lorarena-launch-btn {
       position: fixed;
@@ -279,20 +310,6 @@ function createHoverPanel() {
           <input type="text" data-field="prompt_prefix" placeholder="1girl, " />
           <small style="color:#6b7280;font-size:10px;">${STRINGS.promptPrefixHint}</small>
         </div>
-        <div class="lorarena-toggle-row">
-          <span class="lorarena-toggle-label">${STRINGS.autoQueue}</span>
-          <div class="lorarena-toggle" data-field="auto_queue_enabled" data-type="boolean"></div>
-        </div>
-        <div class="lorarena-field">
-          <label>${STRINGS.autoQueueTarget}</label>
-          <input type="number" data-field="auto_queue_target" placeholder="30" min="1" max="100" />
-          <small style="color:#6b7280;font-size:10px;">${STRINGS.autoQueueTargetHint}</small>
-        </div>
-        <div class="lorarena-field">
-          <label>${STRINGS.autoQueueMax}</label>
-          <input type="number" data-field="auto_queue_max" placeholder="100" min="1" max="200" />
-          <small style="color:#6b7280;font-size:10px;">${STRINGS.autoQueueMaxHint}</small>
-        </div>
       </div>
       <div class="lorarena-section">
         <div class="lorarena-section-title">${STRINGS.battleRoyale}</div>
@@ -309,6 +326,10 @@ function createHoverPanel() {
           <label>${STRINGS.battleRoyaleWinRate}</label>
           <input type="number" data-field="battle_royale_win_rate" placeholder="0.3" min="0" max="1" step="0.05" />
           <small style="color:#6b7280;font-size:10px;">${STRINGS.battleRoyaleWinRateHint}</small>
+        </div>
+        <div class="lorarena-actions-row" style="margin-top:8px;">
+          <button class="lorarena-action-btn danger lorarena-eliminate-btn" type="button" title="${STRINGS.eliminateHint}">${STRINGS.eliminate}</button>
+          <button class="lorarena-action-btn lorarena-refresh-btn" type="button" title="${STRINGS.refreshHint}">${STRINGS.refresh}</button>
         </div>
       </div>
       <div class="lorarena-section">
@@ -508,6 +529,72 @@ function addLauncherButton() {
     });
   }
 
+  // Eliminate button
+  const eliminateBtn = panel.querySelector(".lorarena-eliminate-btn");
+  if (eliminateBtn) {
+    eliminateBtn.addEventListener("click", async () => {
+      const status = panel.querySelector("[data-status]");
+      eliminateBtn.disabled = true;
+      eliminateBtn.textContent = STRINGS.eliminating;
+      if (status) status.textContent = STRINGS.eliminating;
+
+      try {
+        // First save config
+        await saveHoverConfig(panel);
+
+        const response = await fetch("/lorarena/api/checkpoints/eliminate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+          const msg = `${STRINGS.eliminateSuccess}: ${result.eliminated} (${result.moved} moved)`;
+          if (status) status.textContent = msg;
+        } else {
+          const errorMsg = result.errors?.join(", ") || "Unknown error";
+          if (status) status.textContent = errorMsg;
+        }
+      } catch (error) {
+        console.error("[LoRArena] Eliminate failed:", error);
+        if (status) status.textContent = STRINGS.eliminateFailed;
+      } finally {
+        eliminateBtn.disabled = false;
+        eliminateBtn.textContent = STRINGS.eliminate;
+      }
+    });
+  }
+
+  // Refresh button
+  const refreshBtn = panel.querySelector(".lorarena-refresh-btn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", async () => {
+      const status = panel.querySelector("[data-status]");
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = STRINGS.refreshing;
+      if (status) status.textContent = STRINGS.refreshing;
+
+      try {
+        const response = await fetch("/lorarena/api/checkpoints/refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const result = await response.json();
+        if (response.ok) {
+          const msg = `${STRINGS.refreshSuccess}: ${result.deactivated} deactivated`;
+          if (status) status.textContent = msg;
+        } else {
+          throw new Error("Refresh failed");
+        }
+      } catch (error) {
+        console.error("[LoRArena] Refresh failed:", error);
+        if (status) status.textContent = STRINGS.refreshFailed;
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = STRINGS.refresh;
+      }
+    });
+  }
+
   const button = document.createElement("button");
   button.id = "lorarena-launch-button";
   button.className = "lorarena-launch-btn";
@@ -516,8 +603,10 @@ function addLauncherButton() {
 
   let isDragging = false;
   let dragMoved = false;
-  let dragOffsetX = 0;
-  let dragOffsetY = 0;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  const DRAG_THRESHOLD = 3;
+  const BUTTON_SIZE = 52;
 
   const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
@@ -575,9 +664,49 @@ function addLauncherButton() {
   };
   const closePanel = () => panel.classList.remove("open");
 
-  // Click button to toggle panel
-  button.addEventListener("click", () => {
+  // Drag handlers on document level for smooth dragging
+  const onMouseMove = (e) => {
+    if (!isDragging) return;
+
+    const dx = Math.abs(e.clientX - dragStartX);
+    const dy = Math.abs(e.clientY - dragStartY);
+
+    if (!dragMoved && (dx >= DRAG_THRESHOLD || dy >= DRAG_THRESHOLD)) {
+      dragMoved = true;
+      button.classList.add("dragging");
+    }
+
     if (dragMoved) {
+      // Center the button on the cursor
+      let left = e.clientX - BUTTON_SIZE / 2;
+      let top = e.clientY - BUTTON_SIZE / 2;
+      left = clamp(left, 0, window.innerWidth - BUTTON_SIZE);
+      top = clamp(top, 0, window.innerHeight - BUTTON_SIZE);
+      button.style.left = `${left}px`;
+      button.style.top = `${top}px`;
+      button.style.right = "auto";
+      button.style.bottom = "auto";
+      positionPanel();
+    }
+  };
+
+  const onMouseUp = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    button.classList.remove("dragging");
+    document.removeEventListener("mousemove", onMouseMove);
+    document.removeEventListener("mouseup", onMouseUp);
+    if (dragMoved) {
+      saveButtonPosition();
+    }
+  };
+
+  // Click button to toggle panel
+  button.addEventListener("click", (e) => {
+    // If we just finished dragging, ignore this click
+    if (dragMoved) {
+      e.preventDefault();
+      e.stopPropagation();
       dragMoved = false;
       return;
     }
@@ -588,41 +717,14 @@ function addLauncherButton() {
     }
   });
 
-  button.addEventListener("pointerdown", (e) => {
+  button.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
     isDragging = true;
     dragMoved = false;
-    button.classList.add("dragging");
-    const rect = button.getBoundingClientRect();
-    dragOffsetX = e.clientX - rect.left;
-    dragOffsetY = e.clientY - rect.top;
-    button.setPointerCapture(e.pointerId);
-  });
-
-  button.addEventListener("pointermove", (e) => {
-    if (!isDragging) return;
-    const rect = button.getBoundingClientRect();
-    let left = e.clientX - dragOffsetX;
-    let top = e.clientY - dragOffsetY;
-    left = clamp(left, 0, window.innerWidth - rect.width);
-    top = clamp(top, 0, window.innerHeight - rect.height);
-    button.style.left = `${left}px`;
-    button.style.top = `${top}px`;
-    button.style.right = "auto";
-    button.style.bottom = "auto";
-    dragMoved = true;
-    positionPanel();
-  });
-
-  button.addEventListener("pointerup", (e) => {
-    if (!isDragging) return;
-    isDragging = false;
-    button.classList.remove("dragging");
-    button.releasePointerCapture(e.pointerId);
-    saveButtonPosition();
-    setTimeout(() => {
-      dragMoved = false;
-    }, 0);
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
   });
 
   loadButtonPosition();
