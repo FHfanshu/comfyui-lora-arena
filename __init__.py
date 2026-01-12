@@ -96,7 +96,6 @@ def _register_api_routes() -> None:
             "auto_queue_enabled": False,
             "auto_queue_target": 10,  # Target queue depth
             "auto_queue_max": 30,     # Maximum queue depth
-            "prompt_prefix": "",      # Custom prompt prefix
             "mode": "host",           # "host" or "guest" mode
         }
 

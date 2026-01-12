@@ -22,7 +22,6 @@ const STRINGS = (() => {
     saveFailed: isZh ? "保存失败" : "Save failed",
     loraDir: isZh ? "LoRA 目录" : "LoRA Directory",
     trainingDir: isZh ? "训练集目录" : "Training Dir",
-    promptPrefix: isZh ? "提示词前缀" : "Prompt Prefix",
     battleRoyale: isZh ? "大逃杀模式" : "Battle Royale",
     battleRoyaleEnabled: isZh ? "启用大逃杀" : "Enable",
     battleRoyaleThreshold: isZh ? "最低场次" : "Min Battles",
@@ -274,10 +273,6 @@ function createSettingsPanel() {
       <div class="lorarena-field">
         <label>${STRINGS.trainingDir}</label>
         <input type="text" data-field="training_data_directory" placeholder="E:\\Dataset\\my-data" />
-      </div>
-      <div class="lorarena-field">
-        <label>${STRINGS.promptPrefix}</label>
-        <input type="text" data-field="prompt_prefix" placeholder="1girl, " />
       </div>
       <div class="lorarena-section-title">${STRINGS.battleRoyale}</div>
       <div class="lorarena-toggle-row">
@@ -582,7 +577,7 @@ function addLauncherButton() {
         if (!confirm("确定要重置所有LoRA的ELO评分吗？此操作不可撤销。")) return;
         item.textContent = STRINGS.resetting;
         try {
-          const res = await fetch("/lorarena/api/checkpoints/reset", {
+          const res = await fetch("/lorarena/api/checkpoints/reset-all", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
           });
