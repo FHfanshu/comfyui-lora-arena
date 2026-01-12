@@ -284,29 +284,28 @@ app.registerExtension({
                 position: relative;
             `;
 
-            // Hover overlay for vote indication
+            // Hover overlay for vote indication - minimal, non-intrusive
             const hoverOverlay = document.createElement("div");
             hoverOverlay.style.cssText = `
                 position: absolute;
-                top: 0;
+                bottom: 0;
                 left: 0;
                 right: 0;
-                bottom: 0;
-                background: ${label === "A" ? "rgba(59, 130, 246, 0.3)" : "rgba(34, 197, 94, 0.3)"};
+                background: rgba(0, 0, 0, 0.6);
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                padding: 8px;
                 opacity: 0;
-                transition: opacity 0.2s ease;
+                transition: opacity 0.15s ease;
                 pointer-events: none;
                 z-index: 10;
             `;
             const hoverText = document.createElement("span");
             hoverText.style.cssText = `
                 color: white;
-                font-size: 24px;
-                font-weight: bold;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                font-size: 14px;
+                font-weight: 600;
             `;
             hoverText.textContent = label === "A" ? LANG.aBetter : LANG.bBetter;
             hoverOverlay.appendChild(hoverText);
@@ -324,22 +323,16 @@ app.registerExtension({
             img.src = "";
             imgContainer.appendChild(img);
 
-            // Hover effects for image container
+            // Hover effects for image container - minimal, doesn't obscure image
             imgContainer.addEventListener("mouseenter", () => {
                 if (self._hasBattle && !self._hasVoted) {
-                    imgContainer.style.border = label === "A"
-                        ? "2px solid rgba(59, 130, 246, 0.8)"
-                        : "2px solid rgba(34, 197, 94, 0.8)";
-                    imgContainer.style.boxShadow = label === "A"
-                        ? "0 0 20px rgba(59, 130, 246, 0.4)"
-                        : "0 0 20px rgba(34, 197, 94, 0.4)";
+                    imgContainer.style.border = "2px solid #6b7280";
                     hoverOverlay.style.opacity = "1";
                 }
             });
             imgContainer.addEventListener("mouseleave", () => {
                 if (!self._hasVoted) {
                     imgContainer.style.border = "2px solid #333";
-                    imgContainer.style.boxShadow = "";
                     hoverOverlay.style.opacity = "0";
                 }
             });

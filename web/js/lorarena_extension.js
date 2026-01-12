@@ -42,6 +42,13 @@ const STRINGS = (() => {
     resetting: isZh ? "重置中..." : "Resetting...",
     resetSuccess: isZh ? "重置完成" : "Reset done",
     resetFailed: isZh ? "重置失败" : "Reset failed",
+    // Confirm dialogs
+    confirmEliminate: isZh
+      ? "确定要执行淘汰吗？低胜率的LoRA将被移动到上级目录。"
+      : "Are you sure you want to eliminate? Low win-rate LoRAs will be moved to parent directory.",
+    confirmReset: isZh
+      ? "确定要重置所有LoRA的ELO评分吗？此操作不可撤销。"
+      : "Are you sure you want to reset all ELO ratings? This action cannot be undone.",
   };
 })();
 
@@ -53,11 +60,11 @@ function ensureStyles() {
     /* Floating button */
     .lorarena-ball {
       position: fixed;
-      z-index: 999999999;
+      z-index: 120;
       width: 52px;
       height: 52px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      background: #6366f1;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -74,7 +81,7 @@ function ensureStyles() {
     /* Menu container */
     .lorarena-menu {
       position: fixed;
-      z-index: 999999998;
+      z-index: 100;
       display: none;
       flex-direction: column;
       background: rgba(20, 20, 30, 0.95);
@@ -109,7 +116,7 @@ function ensureStyles() {
     /* Settings panel */
     .lorarena-settings {
       position: fixed;
-      z-index: 999999999;
+      z-index: 110;
       display: none;
       flex-direction: column;
       width: 320px;
@@ -229,7 +236,7 @@ function ensureStyles() {
     }
     .lorarena-save-btn {
       border: none;
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      background: #10b981;
       color: #fff;
       padding: 8px 16px;
       border-radius: 6px;
@@ -248,6 +255,18 @@ function ensureStyles() {
       letter-spacing: 0.1em;
       margin-top: 8px;
     }
+
+    /* Respect user's motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      .lorarena-ball,
+      .lorarena-menu-item,
+      .lorarena-toggle,
+      .lorarena-toggle::after,
+      .lorarena-settings-close,
+      .lorarena-save-btn {
+        transition: none !important;
+      }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -263,7 +282,7 @@ function createSettingsPanel() {
   panel.innerHTML = `
     <div class="lorarena-settings-header">
       <span>${STRINGS.title}</span>
-      <button class="lorarena-settings-close" type="button">✕</button>
+      <button class="lorarena-settings-close" type="button" aria-label="Close settings">✕</button>
     </div>
     <div class="lorarena-settings-body">
       <div class="lorarena-field">
@@ -533,7 +552,7 @@ function addLauncherButton() {
         break;
 
       case "eliminate":
-        if (!confirm("确定要执行淘汰吗？低胜率的LoRA将被移动到上级目录。")) return;
+        if (!confirm(STRINGS.confirmEliminate)) return;
         item.textContent = STRINGS.eliminating;
         try {
           const res = await fetch("/lorarena/api/checkpoints/eliminate", {
@@ -574,7 +593,7 @@ function addLauncherButton() {
         break;
 
       case "reset":
-        if (!confirm("确定要重置所有LoRA的ELO评分吗？此操作不可撤销。")) return;
+        if (!confirm(STRINGS.confirmReset)) return;
         item.textContent = STRINGS.resetting;
         try {
           const res = await fetch("/lorarena/api/checkpoints/reset-all", {
