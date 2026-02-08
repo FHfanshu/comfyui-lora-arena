@@ -68,6 +68,7 @@ app.registerExtension({
 
             this._leaderboardContainer = container;
             this._leaderboardContent = content;
+            this._leaderboardFetchSeq = 0;
             this.setSize([500, 500]);
 
             // Fetch initial data
@@ -250,7 +251,10 @@ app.registerExtension({
         // Fetch leaderboard data
         nodeType.prototype._fetchLeaderboard = async function(force = false) {
             const limitWidget = this.widgets?.find(w => w.name === "limit");
+            const minBattlesWidget = this.widgets?.find(w => w.name === "min_battles");
             const limitValue = limitWidget?.value ?? 20;
+            const minBattlesValue = minBattlesWidget?.value ?? 0;
+            const fetchSeq = ++this._leaderboardFetchSeq;
             if (this._statusLabel) {
                 this._statusLabel.textContent = LANG.loading;
             }
@@ -272,11 +276,29 @@ app.registerExtension({
 
                 const params = new URLSearchParams();
                 params.set("limit", String(limitValue));
+                params.set("min_battles", String(minBattlesValue));
+                params.set("active_only", "true");
                 if (loraDirectory) {
                     params.set("lora_directory", loraDirectory);
                 }
                 const response = await fetch(`/lorarena/api/leaderboard?${params.toString()}`);
-                const data = await response.json();
+                let data = null;
+                const contentType = response.headers.get("content-type") || "";
+                if (contentType.includes("application/json")) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    if (!response.ok) {
+                        throw new Error(text || `HTTP ${response.status}`);
+                    }
+                    data = {};
+                }
+                if (!response.ok) {
+                    throw new Error(data?.error || data?.detail || `HTTP ${response.status}`);
+                }
+                if (fetchSeq !== this._leaderboardFetchSeq) {
+                    return;
+                }
                 this._renderLeaderboard(data.items || []);
                 if (this._statusLabel) {
                     if (force) {
@@ -298,6 +320,9 @@ app.registerExtension({
                     this._statusLabel.textContent = LANG.loadFailedShort;
                 }
             } finally {
+                if (fetchSeq !== this._leaderboardFetchSeq) {
+                    return;
+                }
                 if (this._refreshBtn) {
                     this._refreshBtn.disabled = false;
                     this._refreshBtn.textContent = LANG.refresh;
@@ -305,10 +330,23 @@ app.registerExtension({
             }
         };
 
+        // Escape user-controlled text before rendering with innerHTML.
+        nodeType.prototype._escapeHtml = function(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        };
+
         // Format LoRA name to prioritize showing the end (usually contains version numbers)
         nodeType.prototype._formatLoraName = function(name) {
+            if (name === null || name === undefined) {
+                return "";
+            }
             // Remove file extension if present
-            let displayName = name.replace(/\.(safetensors|ckpt|pt)$/i, "");
+            let displayName = String(name).replace(/\.(safetensors|ckpt|pt)$/i, "");
             return displayName;
         };
 
@@ -339,8 +377,20 @@ app.registerExtension({
 
             items.forEach((item, idx) => {
                 const rankColor = idx === 0 ? "#ffd700" : idx === 1 ? "#c0c0c0" : idx === 2 ? "#cd7f32" : "#fff";
-                const displayName = this._formatLoraName(item.name);
-                const eloRounded = Math.round(item.elo_rating);
+                const rank = Number.isFinite(Number(item.rank)) ? Number(item.rank) : idx + 1;
+                const rawName = item.name ?? "";
+                const displayName = this._formatLoraName(rawName);
+                const safeDisplayName = this._escapeHtml(displayName);
+                const eloValue = Number(item.elo_rating);
+                const eloRounded = Number.isFinite(eloValue) ? Math.round(eloValue) : "-";
+                const totalBattles = Number(item.total_battles);
+                const battlesDisplay = Number.isFinite(totalBattles) ? totalBattles : "-";
+                const winRate = Number(item.win_rate);
+                const hasWinRate = Number.isFinite(winRate);
+                const winRateDisplay = hasWinRate ? `${(winRate * 100).toFixed(1)}%` : "-";
+                const winRateColor = hasWinRate
+                    ? (winRate >= 0.5 ? "#4ade80" : "#f87171")
+                    : "#9ca3af";
                 // Apply strikethrough style for eliminated LoRAs in Battle Royale mode
                 const eliminatedStyle = item.eliminated
                     ? "text-decoration: line-through; opacity: 0.5;"
@@ -348,13 +398,14 @@ app.registerExtension({
                 const eliminatedTitle = item.eliminated
                     ? ` (${isZh ? "已淘汰" : "Eliminated"})`
                     : "";
+                const safeTitle = this._escapeHtml(`${rawName}${eliminatedTitle}`);
                 html += `
                     <tr style="color: #e5e7eb; border-bottom: 1px solid #1f2937; ${eliminatedStyle}">
-                        <td style="padding: 8px 6px; color: ${rankColor}; font-weight: 600;">${item.rank}</td>
-                        <td style="padding: 8px 6px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;" title="${item.name}${eliminatedTitle}">${displayName}</td>
+                        <td style="padding: 8px 6px; color: ${rankColor}; font-weight: 600;">${rank}</td>
+                        <td style="padding: 8px 6px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left;" title="${safeTitle}">${safeDisplayName}</td>
                         <td style="padding: 8px 6px; text-align: right; color: #60a5fa; font-weight: 500;">${eloRounded}</td>
-                        <td style="padding: 8px 6px; text-align: right; color: #9ca3af;">${item.total_battles}</td>
-                        <td style="padding: 8px 6px; text-align: right; color: ${item.win_rate >= 0.5 ? '#4ade80' : '#f87171'}; font-weight: 500;">${(item.win_rate * 100).toFixed(1)}%</td>
+                        <td style="padding: 8px 6px; text-align: right; color: #9ca3af;">${battlesDisplay}</td>
+                        <td style="padding: 8px 6px; text-align: right; color: ${winRateColor}; font-weight: 500;">${winRateDisplay}</td>
                     </tr>
                 `;
             });

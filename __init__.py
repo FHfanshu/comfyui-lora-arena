@@ -127,6 +127,7 @@ def _register_api_routes() -> None:
 
     @PromptServer.instance.routes.get("/lorarena/api/leaderboard")
     async def lorarena_leaderboard(request):
+        active_only = str(request.query.get("active_only", "false")).lower() == "true"
         try:
             limit = int(request.query.get("limit", 50))
             min_battles = int(request.query.get("min_battles", 0))
@@ -147,6 +148,8 @@ def _register_api_routes() -> None:
                 .where(Checkpoint.total_battles >= min_battles)
                 .order_by(Checkpoint.elo_rating.desc())
             )
+            if active_only:
+                query = query.where(Checkpoint.is_active == True)
             if not lora_directory:
                 query = query.limit(limit)
             checkpoints = list(db.execute(query).scalars().all())
