@@ -29,6 +29,7 @@ const STRINGS = (() => {
     mode: isZh ? "模式" : "Mode",
     hostMode: isZh ? "主持人" : "Host",
     guestMode: isZh ? "访客" : "Guest",
+    openMenu: isZh ? "打开菜单" : "Open menu",
     // Status messages
     scanning: isZh ? "扫描中..." : "Scanning...",
     scanSuccess: isZh ? "扫描完成" : "Scan complete",
@@ -282,7 +283,7 @@ function createSettingsPanel() {
   panel.innerHTML = `
     <div class="lorarena-settings-header">
       <span>${STRINGS.title}</span>
-      <button class="lorarena-settings-close" type="button" aria-label="Close settings">✕</button>
+      <button class="lorarena-settings-close" type="button" aria-label="${STRINGS.close}">✕</button>
     </div>
     <div class="lorarena-settings-body">
       <div class="lorarena-field">
@@ -409,17 +410,23 @@ function addLauncherButton() {
   ball.id = "lorarena-ball";
   ball.className = "lorarena-ball";
   ball.textContent = "🏆";
+  ball.tabIndex = 0;
+  ball.setAttribute("role", "button");
+  ball.setAttribute("aria-haspopup", "menu");
+  ball.setAttribute("aria-expanded", "false");
+  ball.setAttribute("aria-label", STRINGS.openMenu);
 
   // Create menu
   const menu = document.createElement("div");
   menu.id = "lorarena-menu";
   menu.className = "lorarena-menu";
+  menu.setAttribute("role", "menu");
   menu.innerHTML = `
-    <div class="lorarena-menu-item" data-action="settings">${STRINGS.openSettings}</div>
-    <div class="lorarena-menu-item" data-action="scan">${STRINGS.scanLoras}</div>
-    <div class="lorarena-menu-item" data-action="refresh">${STRINGS.refreshStatus}</div>
-    <div class="lorarena-menu-item danger" data-action="eliminate">${STRINGS.eliminate}</div>
-    <div class="lorarena-menu-item danger" data-action="reset">${STRINGS.resetElo}</div>
+    <div class="lorarena-menu-item" data-action="settings" role="menuitem" tabindex="0">${STRINGS.openSettings}</div>
+    <div class="lorarena-menu-item" data-action="scan" role="menuitem" tabindex="0">${STRINGS.scanLoras}</div>
+    <div class="lorarena-menu-item" data-action="refresh" role="menuitem" tabindex="0">${STRINGS.refreshStatus}</div>
+    <div class="lorarena-menu-item danger" data-action="eliminate" role="menuitem" tabindex="0">${STRINGS.eliminate}</div>
+    <div class="lorarena-menu-item danger" data-action="reset" role="menuitem" tabindex="0">${STRINGS.resetElo}</div>
   `;
 
   // Create settings panel
@@ -447,11 +454,20 @@ function addLauncherButton() {
     localStorage.setItem("lorarena-ball-pos", JSON.stringify({ x: rect.left, y: rect.top }));
   };
 
-  // Dragging - no threshold, center follows mouse
+  // Dragging with threshold to avoid accidental menu toggles
+  const DRAG_THRESHOLD_PX = 4;
   let isDragging = false;
+  let hasDragged = false;
+  let suppressNextClick = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
 
   const onMouseMove = (e) => {
     if (!isDragging) return;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    if (!hasDragged && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+    hasDragged = true;
     let x = e.clientX - BALL_SIZE / 2;
     let y = e.clientY - BALL_SIZE / 2;
     x = Math.max(0, Math.min(x, window.innerWidth - BALL_SIZE));
@@ -465,42 +481,86 @@ function addLauncherButton() {
     isDragging = false;
     document.removeEventListener("mousemove", onMouseMove);
     document.removeEventListener("mouseup", onMouseUp);
-    savePosition();
+    if (hasDragged) {
+      savePosition();
+      suppressNextClick = true;
+      setTimeout(() => {
+        suppressNextClick = false;
+      }, 0);
+    }
+    hasDragged = false;
   };
 
   ball.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
+    e.preventDefault();
     isDragging = true;
+    hasDragged = false;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
   });
 
+  const openMenuNearBall = () => {
+    // Position menu above the ball
+    const rect = ball.getBoundingClientRect();
+    const menuHeight = menu.offsetHeight || 200;
+    let top = rect.top - menuHeight - 8;
+    let left = rect.left + BALL_SIZE / 2 - 70;
+
+    if (top < 10) top = rect.bottom + 8;
+    left = Math.max(10, Math.min(left, window.innerWidth - 150));
+
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+  };
+
+  const closeMenu = () => {
+    menu.classList.remove("open");
+    ball.setAttribute("aria-expanded", "false");
+  };
+
+  const closeFloatingPanels = () => {
+    closeMenu();
+    settingsPanel.classList.remove("open");
+  };
+
+  const toggleMenu = () => {
+    const isOpen = menu.classList.contains("open");
+    if (isOpen) {
+      closeMenu();
+      return;
+    }
+    menu.classList.add("open");
+    ball.setAttribute("aria-expanded", "true");
+    settingsPanel.classList.remove("open");
+    openMenuNearBall();
+  };
+
   // Click to toggle menu
   ball.addEventListener("click", (e) => {
     e.stopPropagation();
-    const isOpen = menu.classList.contains("open");
-    menu.classList.toggle("open", !isOpen);
-    settingsPanel.classList.remove("open");
+    if (suppressNextClick) {
+      return;
+    }
+    toggleMenu();
+  });
 
-    if (!isOpen) {
-      // Position menu above the ball
-      const rect = ball.getBoundingClientRect();
-      const menuHeight = menu.offsetHeight || 200;
-      let top = rect.top - menuHeight - 8;
-      let left = rect.left + BALL_SIZE / 2 - 70;
-
-      if (top < 10) top = rect.bottom + 8;
-      left = Math.max(10, Math.min(left, window.innerWidth - 150));
-
-      menu.style.left = `${left}px`;
-      menu.style.top = `${top}px`;
+  // Keyboard support for launcher button
+  ball.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleMenu();
+    } else if (e.key === "Escape") {
+      closeFloatingPanels();
     }
   });
 
   // Close menu when clicking outside
   document.addEventListener("click", (e) => {
     if (!menu.contains(e.target) && e.target !== ball) {
-      menu.classList.remove("open");
+      closeMenu();
     }
     if (!settingsPanel.contains(e.target) && !menu.contains(e.target) && e.target !== ball) {
       settingsPanel.classList.remove("open");
@@ -513,7 +573,7 @@ function addLauncherButton() {
     if (!item) return;
 
     const action = item.dataset.action;
-    menu.classList.remove("open");
+    closeMenu();
 
     switch (action) {
       case "settings":
@@ -612,6 +672,22 @@ function addLauncherButton() {
         }
         item.textContent = STRINGS.resetElo;
         break;
+    }
+  });
+
+  // Keyboard support for menu items
+  menu.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeMenu();
+      ball.focus();
+      return;
+    }
+    const item = e.target.closest(".lorarena-menu-item");
+    if (!item) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      item.click();
     }
   });
 
